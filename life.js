@@ -160,12 +160,12 @@ function LifeGame(args) {
 
     this.markCellAlive = function(x, y) {
         stateTable[x][y] = true;
-        board.redrawDiff([{x: x, y: y, state: true}]);
+        board.redrawCellAsAlive(x, y);
     }
 
     this.markCellDead = function(x, y) {
         stateTable[x][y] = false;
-        board.redrawDiff([{x: x, y: y, state: false}]);
+        board.redrawCellAsDead(x, y);
     }
 
     this.over = function() {
@@ -276,6 +276,14 @@ function DOMBoard(sizeX, sizeY) {
             elTable[d.x][d.y].className = d.state ? "alive" : "dead";
         });
     }
+
+    this.redrawCellAsAlive = function(x, y) {
+        elTable[x][y].className = "alive";
+    }
+
+    this.redrawCellAsDead = function(x, y) {
+        elTable[x][y].className = "dead";
+    }
 }
 DOMBoard.prototype = new BaseBoard();
 
@@ -307,6 +315,16 @@ function CanvasBoard(sizeX, sizeY) {
         // debug, check sizes
         // cx.fillStyle = "red";
         // cx.fillRect(sizeX * 6 - 6, sizeY * 6 - 6, 5, 5);
+    }
+
+    this.redrawCellAsAlive = function(x, y) {
+        cx.fillStyle = "#000";
+        cx.fillRect(x*6, y*6, 5, 5);
+    }
+
+    this.redrawCellAsDead = function(x, y) {
+        cx.fillStyle = "#fff";
+        cx.fillRect(x*6, y*6, 5, 5);
     }
 }
 CanvasBoard.prototype = new BaseBoard();
