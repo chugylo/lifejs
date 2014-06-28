@@ -346,7 +346,7 @@ window.onload = function() {
 
     var game = new LifeGame({ hasCanvas: hasCanvas }),
         qs = function(name) { return document.querySelector('input[name="'+name+'"]'); },
-        engineInputs =  qs("engine"),
+        engineInputs =  document.querySelectorAll('input[name="engine"]'),
         runInput =      qs("run"),
         delayInput =    qs("delay"),
         ngWidthInput =  qs("new-game-width"),
