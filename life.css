@@ -1,0 +1,21 @@
+* {
+  margin: 0;
+  padding: 0;
+  background-color: #8fa;
+}
+#dom-board > div > div {
+  width: 5px;
+  height: 5px;
+  float: left;
+  margin-right: 1px;
+  margin-bottom: 1px;
+}
+.alive {
+  background-color: black;
+}
+.dead {
+  background-color: white;
+}
+#life-controls {
+  margin: 10px;
+}
