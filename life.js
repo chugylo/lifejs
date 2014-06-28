@@ -6,7 +6,7 @@
  * Alpha version.
  */
 
-function LifeGame(sizeX, sizeY, boardType, delay) {
+function LifeGame(args) {
     function initStateTable() {
         // fill random 50% cells
         var stateTable = [];
@@ -132,6 +132,8 @@ function LifeGame(sizeX, sizeY, boardType, delay) {
     }
 
     this.setBoard = function(boardType) {
+        if (!hasCanvas) return;
+
         var newBoard,
             memRuns = runs;
 
@@ -168,18 +170,21 @@ function LifeGame(sizeX, sizeY, boardType, delay) {
 
     this.over = function() {
         this.stopLoop();
-        canvasBoard.over();
+        if (hasCanvas) {
+            canvasBoard.over();
+        }
         domBoard.over();
     }
 
-    var sizeX = sizeX === undefined ? 200 : sizeX,
-        sizeY = sizeY === undefined ? 100 : sizeY,
-        delay = delay === undefined ? 1000 : delay,
+    var sizeX = args.sizeX === undefined ? 200 : args.sizeX,
+        sizeY = args.sizeY === undefined ? 100 : args.sizeY,
+        delay = args.delay === undefined ? 1000 : args.delay,
+        hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
         stateTable = initStateTable(),
         cellsNeighbors = getCellsNeighbors(),
-        canvasBoard = new CanvasBoard(sizeX, sizeY),
+        canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY) : null,
         domBoard = new DOMBoard(sizeX, sizeY),
-        board = boardType === "DOM" ? domBoard : canvasBoard;  // canvas is default
+        board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard;
         interval = 0,
         runs = false;
 }
@@ -284,10 +289,6 @@ function CanvasBoard(sizeX, sizeY) {
     
     var cx = this.baseEl.getContext("2d");
 
-    if (!cx) {  // no browser support
-        return null;
-    }
-
     this.redraw = function(stateTable) {
         stateTable.map(function(col, x) {
             col.map(function(v, y) {
@@ -326,6 +327,7 @@ function getNumValFromInput(input) {
 window.onload = function() {
     // check the browser
     // IE 9 should ok
+    var hasCanvas;
     if (
         Array.prototype.map === undefined
         || Array.prototype.filter === undefined
@@ -334,9 +336,15 @@ window.onload = function() {
     ) {
         createLifeElem("div", { innerHTML: "Your browser is too old!" }, true);
         return;
+    } else if (document.createElement("canvas").getContext === undefined) {
+        hasCanvas = false;
+        document.getElementById("engine-dom").checked = true;
+        document.getElementById("engine-canvas").disabled = true;
+    } else {
+        hasCanvas = true;
     }
 
-    var game = new LifeGame(),
+    var game = new LifeGame({ hasCanvas: hasCanvas }),
         qs = function(name) { return document.querySelector('input[name="'+name+'"]'); },
         engineInputs =  qs("engine"),
         runInput =      qs("run"),
@@ -415,7 +423,13 @@ window.onload = function() {
             }
 
             game.over();
-            game = new LifeGame(w, h, boardType, memDelay);
+            game = new LifeGame({
+                sizeX: w,
+                sizeY: h,
+                boardType: boardType,
+                delay: memDelay,
+                hasCanvas: hasCanvas
+            });
             game.init();
             if (run) {
                 game.runLoop();
