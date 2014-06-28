@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="life.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      background-color: #8fa;
+    }
+    #dom-board > div > div {
+      width: 5px;
+      height: 5px;
+      float: left;
+      margin-right: 1px;
+      margin-bottom: 1px;
+    }
+    .alive {
+      background-color: black;
+    }
+    .dead {
+      background-color: white;
+    }
+    #life-controls {
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="life">
+    <div id="life-controls">
+      <h4>Board Engine</h4>
+      <label><input type="radio" name="engine" value="Canvas" checked="checked"> Canvas</label>
+      <label><input type="radio" name="engine" value="DOM"> DOM</label>
+
+      <h4>Flow Control</h4>
+      <input type="button" name="run" value="Run">
+      <label>Delay (ms): <input name="delay" value="1000"></label>
+
+      <h4>New Game</h4>
+      <label>Width: <input name="new-game-width" value="200"></label>
+      <label>Height: <input name="new-game-height" value="100"></label><br>
+      <label><input type="checkbox" name="new-game-fit"> Fit to window size</label><br>
+      <input type="button" name="new-game-start" value="Start new game">
+      <hr>
+      <p>Click left mouse to make the cell alive and click right to make it dead.</p>
+    </div>
+  </div>
+
+  <div id="footer">&copy; 2014, chugylo <br>All rights reserved.</div>
+
+</body>
+</html>
