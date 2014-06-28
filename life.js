@@ -48,7 +48,7 @@ function LifeGame(args) {
 
     function recalcStateToDiff() {
         // this function takes a lot of cpu
-        var stateDiff = [];
+        var stateDiff = {newAlive: [], newDead: []};
         for (var x = 0; x < sizeX; x++) {
             for (var y = 0; y < sizeY; y++) {
                 var cAliveNeighbors = cellsNeighbors[x][y].filter(function (neighbor) {
@@ -59,12 +59,12 @@ function LifeGame(args) {
                         break;
                     case 3:  // dead will return alive
                         if (stateTable[x][y] === false) {
-                            stateDiff.push({x: x, y: y, state: true});
+                            stateDiff.newAlive.push({x: x, y: y});
                         }
                         break;
                     default:  // alive will die
                         if (stateTable[x][y] === true) {
-                            stateDiff.push({x: x, y: y, state: false});
+                            stateDiff.newDead.push({x: x, y: y});
                         }
                         break;
                 }
@@ -74,8 +74,11 @@ function LifeGame(args) {
     }
 
     function applyDiffToStateTable(diff) {
-        diff.forEach(function(d) {
-            stateTable[d.x][d.y] = d.state;
+        diff.newAlive.forEach(function(d) {
+            stateTable[d.x][d.y] = true;
+        });
+        diff.newDead.forEach(function(d) {
+            stateTable[d.x][d.y] = false;
         });
     }
 
@@ -160,12 +163,12 @@ function LifeGame(args) {
 
     this.markCellAlive = function(x, y) {
         stateTable[x][y] = true;
-        board.redrawDiff([{x: x, y: y, state: true}]);
+        board.redrawCellAsAlive(x, y);
     }
 
     this.markCellDead = function(x, y) {
         stateTable[x][y] = false;
-        board.redrawDiff([{x: x, y: y, state: false}]);
+        board.redrawCellAsDead(x, y);
     }
 
     this.over = function() {
@@ -272,8 +275,11 @@ function DOMBoard(sizeX, sizeY) {
 
     this.redrawDiff = function(diff) {
         // works faster than redrawing entire board
-        diff.forEach(function(d) {
-            elTable[d.x][d.y].className = d.state ? "alive" : "dead";
+        diff.newAlive.forEach(function(d) {
+            elTable[d.x][d.y].className = "alive";
+        });
+        diff.newDead.forEach(function(d) {
+            elTable[d.x][d.y].className = "dead";
         });
     }
 }
@@ -299,8 +305,13 @@ function CanvasBoard(sizeX, sizeY) {
     }
 
     this.redrawDiff = function(diff) {
-        diff.forEach(function(d) {
-            cx.fillStyle = d.state ? "#000" : "#fff";
+        cx.fillStyle = "#000";
+        diff.newAlive.forEach(function(d) {
+            cx.fillRect(d.x*6, d.y*6, 5, 5);
+        });
+
+        cx.fillStyle = "#fff";
+        diff.newDead.forEach(function(d) {
             cx.fillRect(d.x*6, d.y*6, 5, 5);
         });
 
