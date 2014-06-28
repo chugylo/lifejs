@@ -440,6 +440,10 @@ window.onload = function() {
             h = getNumValFromInput(ngHeightInput);
         }
 
+        if (w * h > 50000) {
+            if (!confirm("You are going to create a HUGE board ("+w*h+" cells). Are you sure?")) return;
+        }
+
         if (w !== null && w > 0 && h !== null && h > 0) {
             var boardType = "",
                 run = runInput.value === "Run" ? false : true;
