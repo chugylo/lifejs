@@ -181,12 +181,13 @@ function LifeGame(args) {
 
     var sizeX = args.sizeX === undefined ? 200 : args.sizeX,
         sizeY = args.sizeY === undefined ? 100 : args.sizeY,
+        cellSize = args.cellSize === undefined ? {x: 5, y: 5} : args.cellSize,
         delay = args.delay === undefined ? 1000 : args.delay,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
         stateTable = initStateTable(),
         cellsNeighbors = getCellsNeighbors(),
-        canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY) : null,
-        domBoard = new DOMBoard(sizeX, sizeY),
+        canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null,
+        domBoard = new DOMBoard(sizeX, sizeY, cellSize),
         board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard;
         interval = 0,
         runs = false;
@@ -201,7 +202,7 @@ function createLifeElem(tag, attrs, insertNow) {
     }
 
     if (insertNow) {
-        var parent = document.getElementById("life");
+        var parent = document.getElementById("board");
         parent.insertBefore(el, parent.firstChild);
     }
 
@@ -210,6 +211,12 @@ function createLifeElem(tag, attrs, insertNow) {
 
 
 function BaseBoard() {
+    this._init = function(sizeX, sizeY, cellSize) {
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+        this.setCellSize(cellSize);
+    }
+
     this.activate = function() {
         this.baseEl.style.display = "block";
     }
@@ -219,13 +226,13 @@ function BaseBoard() {
     }
 
     this.over = function() {
-        var parent = document.getElementById("life");
+        var parent = document.getElementById("board");
         parent.removeChild(this.baseEl, parent.firstChild);
     }
 
     this._createBoard = function(tag, attrs) {
         var board = createLifeElem(tag, attrs || {}),
-            parent = document.getElementById("life");
+            parent = document.getElementById("board");
         board.style.display = "none";
         parent.insertBefore(board, parent.firstChild);
         return board;
@@ -236,39 +243,55 @@ function BaseBoard() {
         board.activate();
         return board;
     }
+
+    this.setCellSize = function(size) {
+        this.cellSize = size;
+        this.width = size.x * this.sizeX + this.sizeX + 1;
+        this.height = size.y * this.sizeY + this.sizeY + 1;
+    }
 }
 
 
-function DOMBoard(sizeX, sizeY) {
-    var elTable = [],
-        width = sizeX * 6,
-        height = sizeY * 6;
+function DOMBoard(sizeX, sizeY, cellSize) {
+    var elTable = [];
 
     this.boardType = "DOM";
 
-    this.baseEl = this._createBoard("div", { id: "dom-board" });
-    this.baseEl.style.width = width + "px";
-    this.baseEl.style.height = height + "px";
+    this._init(sizeX, sizeY, cellSize);
 
-    // this section takes a lot of cpu!
-    for (var y = 0; y < sizeY; y++) {
-        var rowDiv = document.createElement("div");
-        for (var x = 0; x < sizeX; x++) {
-            var cellDiv = document.createElement("div");
-            rowDiv.appendChild(cellDiv);
-            if (elTable[x] === undefined) {
-                elTable[x] = [];
+    this.baseEl = this._createBoard("div", { id: "dom-board" });
+    this.baseEl.style.width = this.width + "px";
+    this.baseEl.style.height = this.height + "px";
+
+    // this section takes a lot of time!
+    (function(board) {
+        var width = board.cellSize.x + "px",
+            height = board.cellSize.y + "px";
+
+        for (var y = 0; y < board.sizeY; y++) {
+            var rowDiv = document.createElement("div");
+            rowDiv.style.height = height;
+            rowDiv.className = "row";
+            for (var x = 0; x < board.sizeX; x++) {
+                var cellDiv = document.createElement("div");
+                cellDiv.style.width = width;
+                cellDiv.style.height = height;
+                cellDiv.className = "cell";
+                rowDiv.appendChild(cellDiv);
+                if (elTable[x] === undefined) {
+                    elTable[x] = [];
+                }
+                elTable[x][y] = cellDiv;
             }
-            elTable[x][y] = cellDiv;
+            board.baseEl.appendChild(rowDiv);
         }
-        this.baseEl.appendChild(rowDiv);
-    }
+    })(this);
 
     this.redraw = function(stateTable) {
         // high cpu load!
         stateTable.map(function(col, x) {
             col.map(function(v, y) {
-                elTable[x][y].className = v ? "alive" : "dead";
+                elTable[x][y].style.backgroundColor = v ? "black" : "white";
             });
         });
     }
@@ -276,38 +299,43 @@ function DOMBoard(sizeX, sizeY) {
     this.redrawDiff = function(diff) {
         // works faster than redrawing entire board
         diff.newAlive.forEach(function(d) {
-            elTable[d.x][d.y].className = "alive";
+            elTable[d.x][d.y].style.backgroundColor = "black";
         });
         diff.newDead.forEach(function(d) {
-            elTable[d.x][d.y].className = "dead";
+            elTable[d.x][d.y].style.backgroundColor = "white";
         });
     }
 
     this.redrawCellAsAlive = function(x, y) {
-        elTable[x][y].className = "alive";
+        elTable[x][y].style.backgroundColor = "black";
     }
 
     this.redrawCellAsDead = function(x, y) {
-        elTable[x][y].className = "dead";
+        elTable[x][y].style.backgroundColor = "white";
     }
 }
 DOMBoard.prototype = new BaseBoard();
 
 
-function CanvasBoard(sizeX, sizeY) {
+function CanvasBoard(sizeX, sizeY, cellSize) {
     this.boardType = "Canvas";
 
+    this._init(sizeX, sizeY, cellSize);
+
     this.baseEl = this._createBoard("canvas");
-    this.baseEl.width = sizeX * 6;
-    this.baseEl.height = sizeY * 6;
+    this.baseEl.width = this.width;
+    this.baseEl.height = this.height;
     
-    var cx = this.baseEl.getContext("2d");
+    var cx = this.baseEl.getContext("2d"),
+        cellSizeX = this.cellSize.x,
+        cellSizeY = this.cellSize.y;
+
 
     this.redraw = function(stateTable) {
         stateTable.map(function(col, x) {
             col.map(function(v, y) {
                 cx.fillStyle = v ? "#000" : "#fff";
-                cx.fillRect(x*6, y*6, 5, 5);
+                cx.fillRect(x*6+1, y*6+1, cellSizeX, cellSizeY);
             });
         });
     }
@@ -315,12 +343,12 @@ function CanvasBoard(sizeX, sizeY) {
     this.redrawDiff = function(diff) {
         cx.fillStyle = "#000";
         diff.newAlive.forEach(function(d) {
-            cx.fillRect(d.x*6, d.y*6, 5, 5);
+            cx.fillRect(d.x*6+1, d.y*6+1, cellSizeX, cellSizeY);
         });
 
         cx.fillStyle = "#fff";
         diff.newDead.forEach(function(d) {
-            cx.fillRect(d.x*6, d.y*6, 5, 5);
+            cx.fillRect(d.x*6+1, d.y*6+1, cellSizeX, cellSizeY);
         });
 
         // debug, check sizes
@@ -330,12 +358,12 @@ function CanvasBoard(sizeX, sizeY) {
 
     this.redrawCellAsAlive = function(x, y) {
         cx.fillStyle = "#000";
-        cx.fillRect(x*6, y*6, 5, 5);
+        cx.fillRect(x*6+1, y*6+1, cellSizeX, cellSizeY);
     }
 
     this.redrawCellAsDead = function(x, y) {
         cx.fillStyle = "#fff";
-        cx.fillRect(x*6, y*6, 5, 5);
+        cx.fillRect(x*6+1, y*6+1, cellSizeX, cellSizeY);
     }
 }
 CanvasBoard.prototype = new BaseBoard();
@@ -378,8 +406,8 @@ window.onload = function() {
         engineInputs =  document.querySelectorAll('input[name="engine"]'),
         runInput =      qs("run"),
         delayInput =    qs("delay"),
-        ngWidthInput =  qs("new-game-width"),
-        ngHeightInput = qs("new-game-height"),
+        ngXInput =      qs("new-game-x"),
+        ngYInput =      qs("new-game-y"),
         ngFitInput =    qs("new-game-fit"),
         ngStartInput =  qs("new-game-start"),
         memDelay;  // memDelay is always a positive number or zero
@@ -421,9 +449,9 @@ window.onload = function() {
 
     ngFitInput.onchange = function() {
         if (ngFitInput.checked) {
-            ngWidthInput.disabled = ngHeightInput.disabled = true;
+            ngXInput.disabled = ngYInput.disabled = true;
         } else {
-            ngWidthInput.disabled = ngHeightInput.disabled = false;
+            ngXInput.disabled = ngYInput.disabled = false;
         }
     }
 
@@ -436,8 +464,8 @@ window.onload = function() {
             w = parseInt(innerWidth / 6) - 3,
             h = parseInt(innerHeight / 6) - 3;
         } else {
-            w = getNumValFromInput(ngWidthInput),
-            h = getNumValFromInput(ngHeightInput);
+            w = getNumValFromInput(ngXInput),
+            h = getNumValFromInput(ngYInput);
         }
 
         if (w * h > 50000) {

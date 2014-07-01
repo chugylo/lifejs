@@ -1,21 +1,109 @@
+  /* General */
+
 * {
   margin: 0;
   padding: 0;
-  background-color: #8fa;
+  color: black;
+  background-color: #ddd;
+  font-family: "Dejavu Serif", "Times New Roman", serif;
+  font-size: 14px;
 }
-#dom-board > div > div {
-  width: 5px;
-  height: 5px;
-  float: left;
-  margin-right: 1px;
+#board, #panel {
+  margin-left: 30px;
+}
+
+  /* Headers */
+
+h1 {
+  font-size: 200%;
+  text-align: center;
+  padding: 20px;
+}
+h4 {
+  font-size: 120%;
+}
+
+  /* Board */
+
+canvas, #dom-board {
+  border: 1px black solid;
+}
+canvas, #dom-board, .row {
+  background-color: #aea;
+}
+.row {
+  margin-top: 1px;
+}
+.row:last-child {
   margin-bottom: 1px;
 }
-.alive {
-  background-color: black;
+.cell {
+  float: left;
+  margin-left: 1px;
 }
-.dead {
-  background-color: white;
+.cell:last-child {
+  margin-right: 1px;
 }
-#life-controls {
-  margin: 10px;
+
+  /* Panel */
+.panel-group {
+  margin: 10px 0 25px;
+}
+.panel-line {
+  margin: 5px 0 5px 10px;
+}
+input {
+  font-family: "Dejavu Sans", Verdana, sans;
+  -webkit-border-radius: 3px;
+          border-radius: 3px;
+}
+input[type="text"] {
+  padding-left: 3px;
+  border: 0;
+  border-bottom: 1px solid black;
+}
+input[type="button"] {
+  font-weight: bold;
+  border: 1px solid black;
+  height: 30px;
+}
+input[type="button"]:hover {
+  text-decoration: underline;
+}
+input:disabled {
+  filter: alpha(opacity=40);
+  opacity: .4;
+}
+input[name="run"] {
+  color: white;
+  width: 120px;
+  margin-left: 15px;
+  background-color: #005900;
+}
+input[name="run"][value="Pause"] {
+  background-color: #590000;
+}
+#flow-control-panel label {
+  margin-left: 35px;
+}
+input[name="delay"] {
+  width: 60px;
+}
+input[name="new-game-x"], input[name="new-game-y"] {
+  width: 45px;
+}
+input[name="new-game-start"] {
+  width: 150px;
+}
+#engine-dom {
+  margin-left: 8px;
+}
+#info-panel {
+  font-style: italic;
+}
+#footer {
+  text-align: center;
+  font-family: "Droid Sans", Arial, sans;
+  font-size: 11px;
+  margin-bottom: 15px;
 }
