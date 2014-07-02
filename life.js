@@ -20,15 +20,17 @@ function LifeGame(args) {
         return stateTable;
     }
 
+    function _filterNeighbor(neighbor) {
+        return stateTable[neighbor[0]][neighbor[1]] ? true : false;
+    }
+
     function recalcState() {
         // this function takes a lot of cpu
         var newStateTable = [];
         for (var x = 0; x < sizeX; x++) {
             var col = [];
             for (var y = 0; y < sizeY; y++) {
-                var cAliveNeighbors = cellsNeighbors[x][y].filter(function (neighbor) {
-                    return stateTable[neighbor[0]][neighbor[1]] ? true : false;
-                }).length;
+                var cAliveNeighbors = cellsNeighbors[x][y].filter(_filterNeighbor).length;
                 switch (cAliveNeighbors) {
                     case 2:  // alive will be alive, dead will not
                         col.push(stateTable[x][y]);
@@ -51,9 +53,7 @@ function LifeGame(args) {
         var stateDiff = {newAlive: [], newDead: []};
         for (var x = 0; x < sizeX; x++) {
             for (var y = 0; y < sizeY; y++) {
-                var cAliveNeighbors = cellsNeighbors[x][y].filter(function (neighbor) {
-                    return stateTable[neighbor[0]][neighbor[1]] ? true : false;
-                }).length;
+                var cAliveNeighbors = cellsNeighbors[x][y].filter(_filterNeighbor).length;
                 switch (cAliveNeighbors) {
                     case 2:  // state will not change
                         break;
