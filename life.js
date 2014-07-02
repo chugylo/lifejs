@@ -503,10 +503,10 @@ window.onload = function() {
 
         if (ngFitInput.checked) {
             // it has issue with scrolls so actually we subtract 3 lines
-            w = parseInt(innerWidth / 6) - 3,
+            w = parseInt(innerWidth / 6) - 3;
             h = parseInt(innerHeight / 6) - 3;
         } else {
-            w = getNumValFromInput(ngXInput),
+            w = getNumValFromInput(ngXInput);
             h = getNumValFromInput(ngYInput);
         }
 
