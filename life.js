@@ -398,6 +398,7 @@ window.onload = function() {
         || Array.prototype.filter === undefined
         || Array.prototype.forEach === undefined
         || Event.prototype.preventDefault === undefined
+        || document.querySelector === undefined
         || document.querySelectorAll === undefined
     ) {
         createLifeElem("div", { innerHTML: "Your browser is too old!" }, true);
