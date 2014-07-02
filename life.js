@@ -196,7 +196,7 @@ function LifeGame(args) {
         cellsNeighbors = getCellsNeighbors(),
         canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null,
         domBoard = new DOMBoard(sizeX, sizeY, cellSize),
-        board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard;
+        board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard,
         interval = 0,
         runs = false;
 }
