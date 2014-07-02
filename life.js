@@ -157,8 +157,16 @@ function LifeGame(args) {
         }
     }
 
-    this.getBoardEl = function() {
-        return board.baseEl;
+    this.getBoardElems = function() {
+        if (hasCanvas) {
+            return [canvasBoard.baseEl, domBoard.baseEl];
+        } else {
+            return [domBoard.baseEl];
+        }
+    }
+
+    this.getCellSize = function() {
+        return cellSize;
     }
 
     this.markCellAlive = function(x, y) {
@@ -389,6 +397,7 @@ window.onload = function() {
         Array.prototype.map === undefined
         || Array.prototype.filter === undefined
         || Array.prototype.forEach === undefined
+        || Event.prototype.preventDefault === undefined
         || document.querySelectorAll === undefined
     ) {
         createLifeElem("div", { innerHTML: "Your browser is too old!" }, true);
@@ -399,6 +408,37 @@ window.onload = function() {
         document.getElementById("engine-canvas").disabled = true;
     } else {
         hasCanvas = true;
+    }
+
+    function assignDrawCbsTo(game) {
+        function onclick(elem, ev, cb, preventDefault) {
+            var cellSize = game.getCellSize(),
+                rect = elem.getBoundingClientRect(),
+                clickX = ev.clientX - rect.left - 2,
+                clickY = ev.clientY - rect.top - 2,
+                cellWithBorderX = cellSize.x + 1,
+                cellWithBorderY = cellSize.y + 1;
+
+            if (clickX % cellWithBorderX && clickY % cellWithBorderY) {
+                var x = parseInt(clickX / cellWithBorderX),
+                    y = parseInt(clickY / cellWithBorderY);
+
+                cb(x, y);
+            }
+
+            if (preventDefault === true) {
+                ev.preventDefault();
+            }
+        }
+
+        game.getBoardElems().forEach(function(elem) {
+            elem.onclick = function(ev) {
+                onclick(elem, ev, game.markCellAlive);
+            }
+            elem.oncontextmenu = function(ev) {
+                onclick(elem, ev, game.markCellDead, true);
+            }
+        });
     }
 
     var game = new LifeGame({ hasCanvas: hasCanvas }),
@@ -416,6 +456,7 @@ window.onload = function() {
     memDelay = memDelay !== null ? memDelay : 1000;
 
     game.init();
+    assignDrawCbsTo(game);
 
     for (var i = 0; i < engineInputs.length; i++) {
         (function() {
@@ -492,23 +533,9 @@ window.onload = function() {
                 hasCanvas: hasCanvas
             });
             game.init();
+            assignDrawCbsTo(game);
             if (run) {
                 game.runLoop();
-            }
-        }
-    }
-
-    document.onmousedown = function(ev) {
-        if (ev.target == game.getBoardEl()) {
-            if (ev.clientX % 6 && ev.clientY % 6) {
-                var x = parseInt(ev.clientX / 6),
-                    y = parseInt(ev.clientY / 6);
-
-                if (ev.buttons === 1) {
-                    game.markCellAlive(x, y);
-                } else if (ev.buttons === 2) {
-                    game.markCellDead(x, y);
-                }
             }
         }
     }
