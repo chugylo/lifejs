@@ -74,25 +74,25 @@ input:disabled {
   filter: alpha(opacity=40);
   opacity: .4;
 }
-input[name="run"] {
+#run {
   color: white;
   width: 120px;
   margin-left: 15px;
   background-color: #005900;
 }
-input[name="run"][value="Pause"] {
+#run[value="Pause"] {
   background-color: #590000;
 }
 #flow-control-panel label {
   margin-left: 35px;
 }
-input[name="delay"] {
+#delay {
   width: 60px;
 }
-input[name="new-game-x"], input[name="new-game-y"] {
+#new-game-x, #new-game-y {
   width: 45px;
 }
-input[name="new-game-start"] {
+#new-game-start {
   width: 150px;
 }
 #engine-dom {

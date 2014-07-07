@@ -377,18 +377,6 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
 CanvasBoard.prototype = new BaseBoard();
 
 
-function getNumValFromInput(input) {
-    // returns number value from input `input` what is >= 0 or null
-    var val = input.value;
-    if (val === "") return null;
-    val = +val;  // cast to number
-    if (val >= 0) {
-        return val;
-    }
-    return null;
-}
-
-
 window.onload = function(ev) {
     // check the browser
     // IE 9 should ok
@@ -401,6 +389,24 @@ window.onload = function(ev) {
         || typeof document.querySelector != "function"
         || typeof document.querySelectorAll != "function"
         || !ev
+        // check getters
+        || (function() {
+                try {
+                    return !eval('({ get x() { return 1; } }).x === 1');
+                } catch (e) {
+                    return true;
+                }
+           })()
+        // check setters
+        || (function () {
+                try {
+                    var value;
+                    eval('({ set x(v) { value = v; } }).x = 1');
+                    return value !== 1;
+                } catch (e) {
+                    return true;
+                }
+            })()
     ) {
         createLifeElem("div", { innerHTML: "Your browser is too old!" }, true);
         return;
@@ -411,6 +417,7 @@ window.onload = function(ev) {
     } else {
         hasCanvas = true;
     }
+
 
     function assignDrawCbsTo(game) {
         function onclick(elem, ev, cb, preventDefault) {
@@ -443,72 +450,135 @@ window.onload = function(ev) {
         });
     }
 
-    var game = new LifeGame({ hasCanvas: hasCanvas }),
-        qs = function(name) { return document.querySelector('input[name="'+name+'"]'); },
-        engineInputs =  document.querySelectorAll('input[name="engine"]'),
-        runInput =      qs("run"),
-        delayInput =    qs("delay"),
-        ngXInput =      qs("new-game-x"),
-        ngYInput =      qs("new-game-y"),
-        ngFitInput =    qs("new-game-fit"),
-        ngStartInput =  qs("new-game-start"),
-        memDelay;  // memDelay is always a positive number or zero
 
-    memDelay = getNumValFromInput(delayInput);
-    memDelay = memDelay !== null ? memDelay : 1000;
+    // The view, according to MVC.
+    // It deals with DOM for the panel.
+    // The board do not utilize it.
+    var view = {
+        // returns number value from input `input` what is >= 0 or null
+        _getNumValFromInput: function(input) {
+            var val = input.value,
+                valInt = parseInt(val, 10);
+
+            return valInt >= 0 ? valInt : null;                
+        },
+
+        runInput:     document.getElementById("run"),
+        delayInput:   document.getElementById("delay"),
+        ngXInput:     document.getElementById("new-game-x"),
+        ngYInput:     document.getElementById("new-game-y"),
+        ngFitInput:   document.getElementById("new-game-fit"),
+        ngStartInput: document.getElementById("new-game-start"),
+
+        get engineInputs() {
+            // converts into the real array
+            var inputs = document.querySelectorAll('input[name="engine"]'),
+                inputsArray = [];
+
+            for (var i = 0; i < inputs.length; i++) {
+                inputsArray.push(inputs[i]);
+            }
+            return inputsArray;
+        },
+
+        get engineCurrent() {
+            return this.engineInputs.filter(function(input) {
+                return input.checked;
+            })[0];
+        },
+
+        get engineVal() {
+            return this.engineCurrent.value;
+        },
+
+        // true - is running
+        // false - is in pause
+        get runVal() {
+            return this.runInput.value === "Pause";
+        },
+
+        // state == true - launch
+        // state == false - pause
+        set runVal(state) {
+            this.runInput.value = state ? "Pause" : "Run";
+        },
+
+        get delayVal() {
+            return this._getNumValFromInput(this.delayInput);
+        },
+
+        get ngXVal() {
+            return this._getNumValFromInput(this.ngXInput);
+        },
+
+        get ngYVal() {
+            return this._getNumValFromInput(this.ngYInput);
+        },
+
+        enableNgCoords: function() {
+            this.ngXInput.disabled = this.ngYInput.disabled = false;
+        },
+
+        disableNgCoords: function() {
+            this.ngXInput.disabled = this.ngYInput.disabled = true;
+        },
+
+        get ngFitVal() {
+            return this.ngFitInput.checked;
+        }
+    }
+
+
+    var game = new LifeGame({ hasCanvas: hasCanvas }),
+        memDelay = view.delayVal !== null ? view.delayVal : 1000;
 
     game.init();
     assignDrawCbsTo(game);
 
-    for (var i = 0; i < engineInputs.length; i++) {
-        (function() {
-            var inp = engineInputs[i];
-            inp.onchange = function() {
-                if (inp.checked) {
-                    game.setBoard(inp.value);
-                }
+    view.engineInputs.forEach(function(input) {
+        input.addEventListener("change", function() {
+            if (input == view.engineCurrent) {
+                game.setBoard(view.engineVal)
             }
-        })();
-    }
+        }, false);
+    });
 
-    runInput.onclick = function() {
-        if (runInput.value === "Run") {
-            runInput.value = "Pause";
+    view.runInput.addEventListener("click", function() {
+        if (!view.runVal) {
+            view.runVal = true;
             game.runLoop(memDelay);
-        } else if (runInput.value === "Pause") {
-            runInput.value = "Run";
+        } else {
+            view.runVal = false;
             game.stopLoop();
         }
-    }
+    }, false);
 
-    delayInput.onchange = function() {
-        var val = getNumValFromInput(delayInput);
-        if (val !== null) {
-            memDelay = val;
-            game.changeDelay(val);
+    view.delayInput.addEventListener("change", function() {
+        if (view.delayVal !== null) {
+            memDelay = view.delayVal;
+            game.changeDelay(view.delayVal);
         }
+    }, false);
 
-    }
-
-    ngFitInput.onchange = function() {
-        if (ngFitInput.checked) {
-            ngXInput.disabled = ngYInput.disabled = true;
+    view.ngFitInput.addEventListener("change", function() {
+        if (view.ngFitVal) {
+            view.disableNgCoords();
         } else {
-            ngXInput.disabled = ngYInput.disabled = false;
+            view.enableNgCoords();
         }
-    }
+    }, false);
 
-    ngStartInput.onclick = function() {
+    view.ngStartInput.addEventListener("click", function() {
         var w = 0,
             h = 0;
 
-        if (ngFitInput.checked) {
+        if (view.ngFitVal) {
             // it has issue with scrolls so actually we subtract 3 lines
             w = parseInt(innerWidth / 6) - 3;
             h = parseInt(innerHeight / 6) - 3;
         } else {
-            w = getNumValFromInput(ngXInput);
-            h = getNumValFromInput(ngYInput);
+            w = view.ngXVal;
+            h = view.ngYVal;
         }
 
         if (w * h > 50000) {
@@ -516,29 +586,19 @@ window.onload = function(ev) {
         }
 
         if (w !== null && w > 0 && h !== null && h > 0) {
-            var boardType = "",
-                run = runInput.value === "Run" ? false : true;
-
-            for (var i = 0; i < engineInputs.length; i++) {
-                if (engineInputs[i].checked) {
-                    boardType = engineInputs[i].value;
-                    break;
-                }
-            }
-
             game.over();
             game = new LifeGame({
                 sizeX: w,
                 sizeY: h,
-                boardType: boardType,
+                boardType: view.engineVal,
                 delay: memDelay,
                 hasCanvas: hasCanvas
             });
             game.init();
             assignDrawCbsTo(game);
-            if (run) {
+            if (view.runVal) {
                 game.runLoop();
             }
         }
-    }
+    }, false);
 }
