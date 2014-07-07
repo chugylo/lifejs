@@ -515,11 +515,11 @@ window.onload = function(ev) {
             return this._getNumValFromInput(this.ngYInput);
         },
 
-        enableNgCoords: function() {
+        enableNgSize: function() {
             this.ngXInput.disabled = this.ngYInput.disabled = false;
         },
 
-        disableNgCoords: function() {
+        disableNgSize: function() {
             this.ngXInput.disabled = this.ngYInput.disabled = true;
         },
 
@@ -562,9 +562,9 @@ window.onload = function(ev) {
 
     view.ngFitInput.addEventListener("change", function() {
         if (view.ngFitVal) {
-            view.disableNgCoords();
+            view.disableNgSize();
         } else {
-            view.enableNgCoords();
+            view.enableNgSize();
         }
     }, false);
 
