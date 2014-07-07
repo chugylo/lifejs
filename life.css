@@ -11,6 +11,16 @@
 #board, #panel {
   margin-left: 30px;
 }
+/* all sans font declarations here */
+input, #info-panel span {
+  font-family: "Dejavu Sans", Verdana, sans;
+}
+.red-text, .too-old {
+  color: #590000;
+}
+.green-text {
+  color: #005900;
+}
 
   /* Headers */
 
@@ -45,11 +55,11 @@ canvas, #dom-board, .row {
   margin-right: 1px;
 }
 .too-old {
-  color: #590000;
   font-size: 140%;
 }
 
   /* Panel */
+
 .panel-group {
   margin: 10px 0 25px;
 }
@@ -57,7 +67,6 @@ canvas, #dom-board, .row {
   margin: 5px 0 5px 10px;
 }
 input {
-  font-family: "Dejavu Sans", Verdana, sans;
   -webkit-border-radius: 3px;
           border-radius: 3px;
 }
@@ -102,9 +111,26 @@ input:disabled {
 #engine-dom {
   margin-left: 8px;
 }
-#info-panel {
+#tip-panel {
   font-style: italic;
 }
+#info-panel {
+  float: right;
+  font-weight: bold;
+  width: 440px;
+}
+#info-panel h4 {
+  margin: 10px 0;
+}
+#info-panel div {
+  margin: 5px 5px 5px 10px;
+}
+#info-panel span {
+  font-weight: normal;
+}
+
+  /* Footer */
+
 #footer {
   text-align: center;
   font-family: "Droid Sans", Arial, sans;

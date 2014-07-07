@@ -169,6 +169,14 @@ function LifeGame(args) {
         return cellSize;
     }
 
+    this.getBoardSize = function() {
+        return {x: sizeX, y: sizeY};
+    }
+
+    this.getBoardEngine = function() {
+        return board.boardType;
+    }
+
     this.markCellAlive = function(x, y) {
         stateTable[x][y] = true;
         board.redrawCellAsAlive(x, y);
@@ -463,12 +471,19 @@ window.onload = function(ev) {
             return valInt >= 0 ? valInt : null;                
         },
 
+        // Abbreviations:
+        // - ng - new game
+        // - i - info
         runInput:     document.getElementById("run"),
         delayInput:   document.getElementById("delay"),
         ngXInput:     document.getElementById("new-game-x"),
         ngYInput:     document.getElementById("new-game-y"),
         ngFitInput:   document.getElementById("new-game-fit"),
         ngStartInput: document.getElementById("new-game-start"),
+        iStatusSpan:      document.querySelector("#info-status span"),
+        iBoardSizeSpan:   document.querySelector("#info-board-size span"),
+        iDelaySpan:       document.querySelector("#info-delay span"),
+        iBoardEngineSpan: document.querySelector("#info-board-type span"),
 
         get engineInputs() {
             // converts into the real array
@@ -525,6 +540,32 @@ window.onload = function(ev) {
 
         get ngFitVal() {
             return this.ngFitInput.checked;
+        },
+
+        // status == true - running
+        // status == false - paused
+        set iStatus(status) {
+            var elem = this.iStatusSpan;
+            if (status) {
+                elem.innerHTML = "running";
+                elem.className = "green-text";
+            } else {
+                elem.innerHTML = "paused";
+                elem.className = "red-text";
+            }
+        },
+
+        set iBoardSize(size) {
+            this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y;
+        },
+
+        set iDelay(delay) {
+            var fps = 1000 / delay;
+            this.iDelaySpan.innerHTML = delay+"&#8201;ms ("+fps.toFixed(2)+"&#8201;fps)";
+        },
+
+        set iBoardEngine(engineName) {
+            this.iBoardEngineSpan.innerHTML = engineName;
         }
     }
 
@@ -534,11 +575,15 @@ window.onload = function(ev) {
 
     game.init();
     assignDrawCbsTo(game);
+    view.iBoardSize = game.getBoardSize();
+    view.iDelay = memDelay;
+    view.iBoardEngine = game.getBoardEngine();
 
     view.engineInputs.forEach(function(input) {
         input.addEventListener("change", function() {
             if (input == view.engineCurrent) {
-                game.setBoard(view.engineVal)
+                game.setBoard(view.engineVal);
+                view.iBoardEngine = game.getBoardEngine();
             }
         }, false);
     });
@@ -546,9 +591,11 @@ window.onload = function(ev) {
     view.runInput.addEventListener("click", function() {
         if (!view.runVal) {
             view.runVal = true;
+            view.iStatus = true;
             game.runLoop(memDelay);
         } else {
             view.runVal = false;
+            view.iStatus = false;
             game.stopLoop();
         }
     }, false);
@@ -556,6 +603,7 @@ window.onload = function(ev) {
     view.delayInput.addEventListener("change", function() {
         if (view.delayVal !== null) {
             memDelay = view.delayVal;
+            view.iDelay = view.delayVal;
             game.changeDelay(view.delayVal);
         }
     }, false);
@@ -596,6 +644,7 @@ window.onload = function(ev) {
             });
             game.init();
             assignDrawCbsTo(game);
+            view.iBoardSize = {x: w, y: h};
             if (view.runVal) {
                 game.runLoop();
             }
