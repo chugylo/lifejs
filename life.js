@@ -389,7 +389,7 @@ function getNumValFromInput(input) {
 }
 
 
-window.onload = function() {
+window.onload = function(ev) {
     // check the browser
     // IE 9 should ok
     var hasCanvas;
@@ -400,6 +400,7 @@ window.onload = function() {
         || Event.prototype.preventDefault === undefined
         || document.querySelector === undefined
         || document.querySelectorAll === undefined
+        || !ev
     ) {
         createLifeElem("div", { innerHTML: "Your browser is too old!" }, true);
         return;
