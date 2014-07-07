@@ -394,17 +394,17 @@ window.onload = function(ev) {
     // IE 9 should ok
     var hasCanvas;
     if (
-        Array.prototype.map === undefined
-        || Array.prototype.filter === undefined
-        || Array.prototype.forEach === undefined
-        || Event.prototype.preventDefault === undefined
-        || document.querySelector === undefined
-        || document.querySelectorAll === undefined
+        typeof Array.prototype.map != "function"
+        || typeof Array.prototype.filter != "function"
+        || typeof Array.prototype.forEach != "function"
+        || typeof Event.prototype.preventDefault != "function"
+        || typeof document.querySelector != "function"
+        || typeof document.querySelectorAll != "function"
         || !ev
     ) {
         createLifeElem("div", { innerHTML: "Your browser is too old!" }, true);
         return;
-    } else if (document.createElement("canvas").getContext === undefined) {
+    } else if (typeof document.createElement("canvas").getContext != "function") {
         hasCanvas = false;
         document.getElementById("engine-dom").checked = true;
         document.getElementById("engine-canvas").disabled = true;
