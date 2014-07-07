@@ -173,6 +173,10 @@ function LifeGame(args) {
         return {x: sizeX, y: sizeY};
     }
 
+    this.getDelay = function() {
+        return delay;
+    }
+
     this.getBoardEngine = function() {
         return board.boardType;
     }
@@ -195,10 +199,10 @@ function LifeGame(args) {
         domBoard.over();
     }
 
-    var sizeX = args.sizeX === undefined ? 200 : args.sizeX,
-        sizeY = args.sizeY === undefined ? 100 : args.sizeY,
+    var sizeX = args.sizeX || LifeGame.default.sizeX,
+        sizeY = args.sizeY || LifeGame.default.sizeY,
         cellSize = args.cellSize === undefined ? {x: 5, y: 5} : args.cellSize,
-        delay = args.delay === undefined ? 1000 : args.delay,
+        delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : LifeGame.default.delay,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
         stateTable = initStateTable(),
         cellsNeighbors = getCellsNeighbors(),
@@ -207,6 +211,11 @@ function LifeGame(args) {
         board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard,
         interval = 0,
         runs = false;
+}
+LifeGame.default = {
+    sizeX: 200,
+    sizeY: 100,
+    delay: 1000
 }
 
 
@@ -427,6 +436,51 @@ window.onload = function(ev) {
     }
 
 
+    function startGame(firstInSession) {
+        var w = 0,
+            h = 0,
+            delay = 0;
+
+        if (view.ngFitVal) {
+            // it has issue with scrolls so actually we subtract 3 lines
+            w = parseInt(innerWidth / 6) - 3;
+            h = parseInt(innerHeight / 6) - 3;
+        } else if (firstInSession) {
+            w = view.ngXVal;
+            h = view.ngYVal;
+        } else {
+            w = view.ngXVal || game.getBoardSize().x;
+            h = view.ngYVal || game.getBoardSize().y;
+        }
+
+        if (w * h > 50000) {
+            if (!confirm("You are going to create a HUGE board ("+w*h+" cells). Are you sure?")) return;
+        }
+
+        if (firstInSession) {
+            delay = view.delayVal;
+        } else {
+            delay = view.delayVal !== null ? view.delayVal : game.getDelay();
+        }
+
+        game = new LifeGame({
+            sizeX: w,
+            sizeY: h,
+            boardType: view.engineVal,
+            delay: delay,
+            hasCanvas: hasCanvas
+        });
+        game.init();
+        assignDrawCbsTo(game);
+        if (view.runVal) {
+            game.runLoop();
+        }
+
+        view.iBoardSize = game.getBoardSize();
+
+        return game;
+    }
+
     function assignDrawCbsTo(game) {
         function onclick(elem, ev, cb, preventDefault) {
             var cellSize = game.getCellSize(),
@@ -463,14 +517,6 @@ window.onload = function(ev) {
     // It deals with DOM for the panel.
     // The board do not utilize it.
     var view = {
-        // returns number value from input `input` what is >= 0 or null
-        _getNumValFromInput: function(input) {
-            var val = input.value,
-                valInt = parseInt(val, 10);
-
-            return valInt >= 0 ? valInt : null;                
-        },
-
         // Abbreviations:
         // - ng - new game
         // - i - info
@@ -518,16 +564,20 @@ window.onload = function(ev) {
             this.runInput.value = state ? "Pause" : "Run";
         },
 
+        // returns intenger >= 0 or null
         get delayVal() {
-            return this._getNumValFromInput(this.delayInput);
+            var val = parseInt(this.delayInput.value, 10);
+            return val >= 0 ? val : null;  
         },
 
+        // returns a positive intenger or null
         get ngXVal() {
-            return this._getNumValFromInput(this.ngXInput);
+            return parseInt(this.ngXInput.value, 10) || null;
         },
 
+        // returns a positive intenger or null
         get ngYVal() {
-            return this._getNumValFromInput(this.ngYInput);
+            return parseInt(this.ngYInput.value, 10) || null;
         },
 
         enableNgSize: function() {
@@ -570,13 +620,8 @@ window.onload = function(ev) {
     }
 
 
-    var game = new LifeGame({ hasCanvas: hasCanvas }),
-        memDelay = view.delayVal !== null ? view.delayVal : 1000;
-
-    game.init();
-    assignDrawCbsTo(game);
-    view.iBoardSize = game.getBoardSize();
-    view.iDelay = memDelay;
+    var game = startGame(true);
+    view.iDelay = game.getDelay();
     view.iBoardEngine = game.getBoardEngine();
 
     view.engineInputs.forEach(function(input) {
@@ -592,7 +637,7 @@ window.onload = function(ev) {
         if (!view.runVal) {
             view.runVal = true;
             view.iStatus = true;
-            game.runLoop(memDelay);
+            game.runLoop();
         } else {
             view.runVal = false;
             view.iStatus = false;
@@ -602,7 +647,6 @@ window.onload = function(ev) {
 
     view.delayInput.addEventListener("change", function() {
         if (view.delayVal !== null) {
-            memDelay = view.delayVal;
             view.iDelay = view.delayVal;
             game.changeDelay(view.delayVal);
         }
@@ -617,37 +661,7 @@ window.onload = function(ev) {
     }, false);
 
     view.ngStartInput.addEventListener("click", function() {
-        var w = 0,
-            h = 0;
-
-        if (view.ngFitVal) {
-            // it has issue with scrolls so actually we subtract 3 lines
-            w = parseInt(innerWidth / 6) - 3;
-            h = parseInt(innerHeight / 6) - 3;
-        } else {
-            w = view.ngXVal;
-            h = view.ngYVal;
-        }
-
-        if (w * h > 50000) {
-            if (!confirm("You are going to create a HUGE board ("+w*h+" cells). Are you sure?")) return;
-        }
-
-        if (w !== null && w > 0 && h !== null && h > 0) {
-            game.over();
-            game = new LifeGame({
-                sizeX: w,
-                sizeY: h,
-                boardType: view.engineVal,
-                delay: memDelay,
-                hasCanvas: hasCanvas
-            });
-            game.init();
-            assignDrawCbsTo(game);
-            view.iBoardSize = {x: w, y: h};
-            if (view.runVal) {
-                game.runLoop();
-            }
-        }
+        game.over();
+        startGame();
     }, false);
 }
