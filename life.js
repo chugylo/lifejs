@@ -408,7 +408,7 @@ window.onload = function(ev) {
                 }
             })()
     ) {
-        createLifeElem("div", { innerHTML: "Your browser is too old!" }, true);
+        createLifeElem("div", { className: "too-old", innerHTML: "ERROR: Your browser is too old!" }, true);
         return;
     } else if (typeof document.createElement("canvas").getContext != "function") {
         hasCanvas = false;

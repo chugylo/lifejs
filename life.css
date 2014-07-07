@@ -44,6 +44,10 @@ canvas, #dom-board, .row {
 .cell:last-child {
   margin-right: 1px;
 }
+.too-old {
+  color: #590000;
+  font-size: 140%;
+}
 
   /* Panel */
 .panel-group {
