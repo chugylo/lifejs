@@ -9,7 +9,7 @@
   font-size: 14px;
 }
 #board, #panel {
-  margin-left: 30px;
+  padding-left: 30px;
 }
 /* all sans font declarations here */
 input, #info-panel span {

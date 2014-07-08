@@ -201,7 +201,7 @@ function LifeGame(args) {
 
     var sizeX = args.sizeX || 200,
         sizeY = args.sizeY || 100,
-        cellSize = args.cellSize === undefined ? {x: 5, y: 5} : args.cellSize,
+        cellSize = args.cellSize || LifeGame.defaultCellSize,
         delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
         stateTable = initStateTable(),
@@ -212,6 +212,7 @@ function LifeGame(args) {
         interval = 0,
         runs = false;
 }
+LifeGame.defaultCellSize = {x: 5, y: 5};
 
 
 function createLifeElem(tag, attrs, insertNow) {
@@ -431,21 +432,54 @@ window.onload = function(ev) {
     }
 
 
+    function unFitWindow() {
+        var board = document.getElementById("board");
+
+        document.body.style.overflow = "";
+        board.style.paddingLeft = "";
+        board.style.paddingTop = "";
+    }
+
     function startGame(firstInSession) {
         var w = 0,
             h = 0,
-            delay = 0;
+            delay = 0,
+            board = document.getElementById("board");
 
         if (view.ngFitVal) {
-            // it has issue with scrolls so actually we subtract 3 lines
-            w = parseInt(innerWidth / 6) - 3;
-            h = parseInt(innerHeight / 6) - 3;
-        } else if (firstInSession) {
-            w = view.ngXVal;
-            h = view.ngYVal;
+            fitWindow = true;
+
+            // we must style the page before getting its size
+            document.body.style.overflow = "hidden";
+
+            var cellSize = firstInSession ? LifeGame.defaultCellSize : game.getCellSize(),
+                clientWidth = document.documentElement.clientWidth,
+                clientHeight = document.documentElement.clientHeight,
+                paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2),
+                paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
+
+            board.style.paddingLeft = paddingLeft+"px";
+            board.style.paddingTop = paddingTop+"px";
+            
+            w = Math.floor((clientWidth - 3) / (cellSize.x + 1));
+            h = Math.floor((clientHeight - 3) / (cellSize.y + 1));
+
+            view.runVal = true;
+            view.iStatus = true;
+
+            alert('"Fit to window" function will hide scrolls and auto-run the game. Press ESC to show the scrolls back.');
         } else {
-            w = view.ngXVal || game.getBoardSize().x;
-            h = view.ngYVal || game.getBoardSize().y;
+            fitWindow = false;
+
+            unFitWindow();
+
+            if (firstInSession) {
+                w = view.ngXVal;
+                h = view.ngYVal;
+            } else {
+                w = view.ngXVal || game.getBoardSize().x;
+                h = view.ngYVal || game.getBoardSize().y;
+            }
         }
 
         if (w * h > 50000) {
@@ -467,7 +501,7 @@ window.onload = function(ev) {
         });
         game.init();
         assignDrawCbsTo(game);
-        if (view.runVal) {
+        if (view.runVal || fitWindow) {
             game.runLoop();
         }
 
@@ -615,9 +649,22 @@ window.onload = function(ev) {
     }
 
 
-    var game = startGame(true);
+    // scrolling can be done only on full DOM therefore we do it outside the startGame()
+    var fitWindow = false,
+        game = startGame(true);
+
+    if (fitWindow) {
+        document.getElementById("board").scrollIntoView();
+    }
+
     view.iDelay = game.getDelay();
     view.iBoardEngine = game.getBoardEngine();
+
+    document.body.addEventListener("keyup", function(ev) {
+        if (ev.keyCode == 27) {  // ESC
+            unFitWindow();
+        }
+    }, false);
 
     view.engineInputs.forEach(function(input) {
         input.addEventListener("change", function() {
@@ -658,5 +705,9 @@ window.onload = function(ev) {
     view.ngStartInput.addEventListener("click", function() {
         game.over();
         startGame();
+
+        if (fitWindow) {
+            document.getElementById("board").scrollIntoView();
+        }
     }, false);
 }
