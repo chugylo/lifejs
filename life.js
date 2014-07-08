@@ -199,10 +199,10 @@ function LifeGame(args) {
         domBoard.over();
     }
 
-    var sizeX = args.sizeX || LifeGame.default.sizeX,
-        sizeY = args.sizeY || LifeGame.default.sizeY,
+    var sizeX = args.sizeX || 200,
+        sizeY = args.sizeY || 100,
         cellSize = args.cellSize === undefined ? {x: 5, y: 5} : args.cellSize,
-        delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : LifeGame.default.delay,
+        delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
         stateTable = initStateTable(),
         cellsNeighbors = getCellsNeighbors(),
@@ -211,11 +211,6 @@ function LifeGame(args) {
         board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard,
         interval = 0,
         runs = false;
-}
-LifeGame.default = {
-    sizeX: 200,
-    sizeY: 100,
-    delay: 1000
 }
 
 
