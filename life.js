@@ -441,10 +441,11 @@ window.onload = function(ev) {
     }
 
     function startGame(firstInSession) {
-        var w = 0,
-            h = 0,
-            delay = 0,
-            board = document.getElementById("board");
+        var options = {},
+            board = document.getElementById("board"),
+            cellC = 0,
+            gameCellC = 0,
+            hugeBoardLim = 50000;
 
         if (view.ngFitVal) {
             fitWindow = true;
@@ -461,8 +462,8 @@ window.onload = function(ev) {
             board.style.paddingLeft = paddingLeft+"px";
             board.style.paddingTop = paddingTop+"px";
             
-            w = Math.floor((clientWidth - 3) / (cellSize.x + 1));
-            h = Math.floor((clientHeight - 3) / (cellSize.y + 1));
+            options.sizeX = Math.floor((clientWidth - 3) / (cellSize.x + 1));
+            options.sizeY = Math.floor((clientHeight - 3) / (cellSize.y + 1));
 
             view.runVal = true;
             view.iStatus = true;
@@ -474,31 +475,41 @@ window.onload = function(ev) {
             unFitWindow();
 
             if (firstInSession) {
-                w = view.ngXVal;
-                h = view.ngYVal;
+                options.sizeX = view.ngXVal;
+                options.sizeY = view.ngYVal;
             } else {
-                w = view.ngXVal || game.getBoardSize().x;
-                h = view.ngYVal || game.getBoardSize().y;
+                options.sizeX = view.ngXVal || game.getBoardSize().x;
+                options.sizeY = view.ngYVal || game.getBoardSize().y;
             }
         }
 
-        if (w * h > 50000) {
-            if (!confirm("You are going to create a HUGE board ("+w*h+" cells). Are you sure?")) return;
+        cellC = options.sizeX * options.sizeY;
+        if (cellC > hugeBoardLim) {
+            if (!confirm("You are going to create a HUGE board ("+cellC+" cells). Are you sure?")) {
+                if (game) {
+                    options.sizeX = game.getBoardSize().x;
+                    options.sizeY = game.getBoardSize().y;
+
+                    gameCellC = options.sizeX * options.sizeY;
+                    if (gameCellC > hugeBoardLim) {
+                        options = {};
+                    }
+                } else {
+                    options = {};
+                }
+            }
         }
 
         if (firstInSession) {
-            delay = view.delayVal;
+            options.delay = view.delayVal;
         } else {
-            delay = view.delayVal !== null ? view.delayVal : game.getDelay();
+            options.delay = view.delayVal !== null ? view.delayVal : game.getDelay();
         }
 
-        game = new LifeGame({
-            sizeX: w,
-            sizeY: h,
-            boardType: view.engineVal,
-            delay: delay,
-            hasCanvas: hasCanvas
-        });
+        options.boardType = view.engineVal;
+        options.hasCanvas = hasCanvas;
+
+        game = new LifeGame(options);
         game.init();
         assignDrawCbsTo(game);
         if (view.runVal || fitWindow) {
