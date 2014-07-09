@@ -22,12 +22,12 @@
 
     <div id="flow-control-panel" class="panel-group">
       <input type="button" id="run" value="Run">
-      <label>Step Delay: <input type="text" id="delay" value="1000">&#8201;ms</label>
+      <label>Step Delay: <input type="number" id="delay" min="0" max="3600000" value="1000" maxlength="7">&#8201;ms</label>
     </div>
 
     <div id="new-game-panel" class="panel-group">
       <h4>New Game</h4>
-      <div class="panel-line"><label>Board Size: <input type="text" id="new-game-x" value="200" placeholder="x"></label>&#8201;&#215;&#8201;<label><input type="text" id="new-game-y" value="100" placeholder="y"></label></div>
+      <div class="panel-line"><label>Board Size: <input type="number" id="new-game-x" min="1" max="9999" value="200" placeholder="x" maxlength="4"></label>&#8201;&#215;&#8201;<label><input type="number" id="new-game-y" min="1" max="9999" value="100" placeholder="y" maxlength="4"></label></div>
       <div class="panel-line"><label><input type="checkbox" id="new-game-fit"> Fit to window size</label></div>
       <div class="panel-line"><input type="button" id="new-game-start" value="Start new game"></div>
     </div>

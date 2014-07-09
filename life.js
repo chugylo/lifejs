@@ -593,20 +593,22 @@ window.onload = function(ev) {
             this.runInput.value = state ? "Pause" : "Run";
         },
 
-        // returns intenger >= 0 or null
         get delayVal() {
             var val = parseInt(this.delayInput.value, 10);
-            return val >= 0 ? val : null;  
+            return val >= 0 && val <= 3600000 ? val : null;
         },
 
-        // returns a positive intenger or null
+        _ngSizeVal: function(input) {
+            var val = parseInt(input.value, 10);
+            return val > 0 && val < 10000 ? val : null;
+        },
+
         get ngXVal() {
-            return parseInt(this.ngXInput.value, 10) || null;
+            return this._ngSizeVal(this.ngXInput);
         },
 
-        // returns a positive intenger or null
         get ngYVal() {
-            return parseInt(this.ngYInput.value, 10) || null;
+            return this._ngSizeVal(this.ngYInput);
         },
 
         enableNgSize: function() {

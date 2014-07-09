@@ -70,10 +70,9 @@ input {
   -webkit-border-radius: 3px;
           border-radius: 3px;
 }
-input[type="text"] {
-  padding-left: 3px;
-  border: 0;
-  border-bottom: 1px solid black;
+input[type="number"] {
+  padding: 2px 2px 2px 3px;
+  border: 1px solid #333;
 }
 input[type="button"] {
   font-weight: bold;
@@ -100,10 +99,10 @@ input:disabled {
   margin-left: 35px;
 }
 #delay {
-  width: 60px;
+  width: 80px;
 }
 #new-game-x, #new-game-y {
-  width: 45px;
+  width: 55px;
 }
 #new-game-start {
   width: 150px;
