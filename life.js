@@ -647,8 +647,34 @@ window.onload = function(ev) {
             }
         },
 
+        // 1000000 => "1 000 000"
+        _formatCells: function(num) {
+            var unformatted = String(num),
+                len = unformatted.length,
+                parts = [],
+                begin = len - 3,
+                end = len,
+                result = "";
+
+            for (; end > 0; begin = begin - 3, end = end - 3) {
+               if (begin > 0) {
+                  parts.push(unformatted.slice(begin, end));
+               }
+                else {
+                    parts.push(unformatted.slice(0, end));
+                }
+            }
+
+            parts.forEach(function(part) {
+                result = part + "&#8201;" + result;
+            });
+
+            return result;
+        },
+
         set iBoardSize(size) {
-            this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y;
+            var cellC = this._formatCells(size.x * size.y);
+            this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;cells)";
         },
 
         set iDelay(delay) {
