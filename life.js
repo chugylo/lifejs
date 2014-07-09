@@ -440,7 +440,7 @@ window.onload = function(ev) {
         board.style.paddingTop = "";
     }
 
-    function startGame(firstInSession) {
+    function startGame() {
         var options = {},
             board = document.getElementById("board"),
             cellC = 0,
@@ -453,7 +453,7 @@ window.onload = function(ev) {
             // we must style the page before getting its size
             document.body.style.overflow = "hidden";
 
-            var cellSize = firstInSession ? LifeGame.defaultCellSize : game.getCellSize(),
+            var cellSize = game ? game.getCellSize() : LifeGame.defaultCellSize,
                 clientWidth = document.documentElement.clientWidth,
                 clientHeight = document.documentElement.clientHeight,
                 paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2),
@@ -474,7 +474,7 @@ window.onload = function(ev) {
 
             unFitWindow();
 
-            if (firstInSession) {
+            if (!game) {
                 options.sizeX = view.ngXVal;
                 options.sizeY = view.ngYVal;
             } else {
@@ -500,7 +500,7 @@ window.onload = function(ev) {
             }
         }
 
-        if (firstInSession) {
+        if (!game) {
             options.delay = view.delayVal;
         } else {
             options.delay = view.delayVal !== null ? view.delayVal : game.getDelay();
@@ -664,7 +664,7 @@ window.onload = function(ev) {
 
     // scrolling can be done only on full DOM therefore we do it outside the startGame()
     var fitWindow = false,
-        game = startGame(true);
+        game = startGame();
 
     if (fitWindow) {
         document.getElementById("board").scrollIntoView();
