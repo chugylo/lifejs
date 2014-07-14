@@ -21,6 +21,9 @@ input, #info-panel span {
 .green-text {
   color: #005900;
 }
+.italic-text {
+  font-style: italic;
+}
 
   /* Headers */
 

@@ -101,15 +101,16 @@ function LifeGame(view, args) {
         return cellsNeighbors;
     }
 
-    function incGeneration() {
+    function renewView() {
         generation++;
         view.iGeneration = generation;
+        view.renewCellInfo();
     }
 
     this.init = function () {
         board.activate();
         board.redraw(stateTable);
-        incGeneration();
+        renewView();
     }
 
     this.runLoop = function(newDelay) {
@@ -121,7 +122,7 @@ function LifeGame(view, args) {
             var diff = recalcStateToDiff();
             applyDiffToStateTable(diff);
             board.redrawDiff(diff);
-            incGeneration();
+            renewView();
         }, delay);
     }
 
@@ -186,6 +187,10 @@ function LifeGame(view, args) {
 
     this.getBoardEngine = function() {
         return board.boardType;
+    }
+
+    this.getStateForCell = function(x, y) {
+        return stateTable[x][y];
     }
 
     this.markCellAlive = function(x, y) {
@@ -519,7 +524,7 @@ window.onload = function(ev) {
 
         game = new LifeGame(view, options);
         game.init();
-        assignDrawCbsTo(game);
+        assignCbsTo(game);
         if (view.runVal || fitWindow) {
             game.runLoop();
         }
@@ -529,12 +534,13 @@ window.onload = function(ev) {
         return game;
     }
 
-    function assignDrawCbsTo(game) {
-        function onclick(elem, ev, cb, preventDefault) {
+    function assignCbsTo(game) {
+        function onmouse(elem, ev, cb, cbBorder, preventDefault) {
             var cellSize = game.getCellSize(),
+                boardSize = game.getBoardSize(),
                 rect = elem.getBoundingClientRect(),
-                clickX = ev.clientX - rect.left - 2,
-                clickY = ev.clientY - rect.top - 2,
+                clickX = ev.clientX - rect.left - 1,
+                clickY = ev.clientY - rect.top - 1,
                 cellWithBorderX = cellSize.x + 1,
                 cellWithBorderY = cellSize.y + 1;
 
@@ -542,7 +548,11 @@ window.onload = function(ev) {
                 var x = parseInt(clickX / cellWithBorderX),
                     y = parseInt(clickY / cellWithBorderY);
 
-                cb(x, y);
+                if (x < boardSize.x && y < boardSize.y) {
+                    cb(x, y);
+                }
+            } else if (typeof cbBorder == "function") {
+                cbBorder();
             }
 
             if (preventDefault === true) {
@@ -552,10 +562,33 @@ window.onload = function(ev) {
 
         game.getBoardElems().forEach(function(elem) {
             elem.onclick = function(ev) {
-                onclick(elem, ev, game.markCellAlive);
+                onmouse(elem, ev, function(x, y) {
+                    game.markCellAlive(x, y);
+                    view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
+                });
             }
             elem.oncontextmenu = function(ev) {
-                onclick(elem, ev, game.markCellDead, true);
+                onmouse(elem, ev, function(x, y) {
+                    game.markCellDead(x, y);
+                    view.iCellInfo = { state: "in", x: x, y: y, cellState: false };
+                }, null, true);
+            }
+            elem.onmouseenter = function() {
+                elem.onmousemove = function(ev) {
+                    onmouse(elem, ev, function(x, y) {
+                        var state = game.getStateForCell(x, y);
+                        view.iCellInfo = { state: "in", x: x, y: y, cellState: state };
+                        view.mouseAboveState = { isActive: true, x: x, y: y };
+                    }, function() {
+                        view.iCellInfo = { state: "border" };
+                        view.mouseAboveState = { isActive: false };
+                    });
+                }
+            }
+            elem.onmouseleave = function() {
+                elem.onmousemove = null;
+                view.iCellInfo = { state: "out" };
+                view.mouseAboveState = { isActive: false };
             }
         });
     }
@@ -576,9 +609,13 @@ window.onload = function(ev) {
         ngStartInput: document.getElementById("new-game-start"),
         iStatusSpan:      document.querySelector("#info-status span"),
         iGenerationSpan:  document.querySelector("#info-generation span"),
+        iCellInfoSpan:    document.querySelector("#info-cell-info span"),
         iBoardSizeSpan:   document.querySelector("#info-board-size span"),
         iDelaySpan:       document.querySelector("#info-delay span"),
         iBoardEngineSpan: document.querySelector("#info-board-type span"),
+
+        // cached position of the mouse for renew Cell Info at every board redraw
+        mouseAboveState: { isActive: false },
 
         get engineInputs() {
             // converts into the real array
@@ -677,6 +714,44 @@ window.onload = function(ev) {
 
         set iGeneration(generation) {
             this.iGenerationSpan.innerHTML = this._format(generation);
+        },
+
+        set iCellInfo(info) {
+            var baseElem = this.iCellInfoSpan;
+
+            switch (info.state) {
+                case "in":
+                    var stateSpan = document.createElement("span"),
+                        stateText = info.cellState ? "alive" : "dead";
+
+                    stateSpan.className = info.cellState ? "green-text" : "red-text";
+                    stateSpan.innerHTML = stateText;
+
+                    baseElem.className = "";
+                    baseElem.innerHTML = "x="+info.x+", y="+info.y+", ";
+                    baseElem.appendChild(stateSpan);
+
+                    break;
+                case "out":
+                    baseElem.className = "italic-text";
+                    baseElem.innerHTML = "&lt;Hover the mouse above the board to see&gt;";
+
+                    break;
+                case "border":
+                    baseElem.className = "italic-text";
+                    baseElem.innerHTML = "&lt;Cells' border&gt;";
+
+                    break;
+            }
+        },
+
+        renewCellInfo: function() {
+            if (this.mouseAboveState.isActive) {
+                var x = this.mouseAboveState.x,
+                    y = this.mouseAboveState.y;
+
+                this.iCellInfo = { state: "in", x: x, y: y, cellState: game.getStateForCell(x, y) };
+            }
         },
 
         set iBoardSize(size) {
