@@ -6,7 +6,7 @@
  * Alpha version.
  */
 
-function LifeGame(args) {
+function LifeGame(view, args) {
     function initStateTable() {
         // fill random 50% cells
         var stateTable = [];
@@ -101,9 +101,15 @@ function LifeGame(args) {
         return cellsNeighbors;
     }
 
+    function incGeneration() {
+        generation++;
+        view.iGeneration = generation;
+    }
+
     this.init = function () {
         board.activate();
         board.redraw(stateTable);
+        incGeneration();
     }
 
     this.runLoop = function(newDelay) {
@@ -115,6 +121,7 @@ function LifeGame(args) {
             var diff = recalcStateToDiff();
             applyDiffToStateTable(diff);
             board.redrawDiff(diff);
+            incGeneration();
         }, delay);
     }
 
@@ -210,7 +217,8 @@ function LifeGame(args) {
         domBoard = new DOMBoard(sizeX, sizeY, cellSize),
         board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard,
         interval = 0,
-        runs = false;
+        runs = false,
+        generation = 0;
 }
 LifeGame.defaultCellSize = {x: 5, y: 5};
 
@@ -509,7 +517,7 @@ window.onload = function(ev) {
         options.boardType = view.engineVal;
         options.hasCanvas = hasCanvas;
 
-        game = new LifeGame(options);
+        game = new LifeGame(view, options);
         game.init();
         assignDrawCbsTo(game);
         if (view.runVal || fitWindow) {
@@ -567,6 +575,7 @@ window.onload = function(ev) {
         ngFitInput:   document.getElementById("new-game-fit"),
         ngStartInput: document.getElementById("new-game-start"),
         iStatusSpan:      document.querySelector("#info-status span"),
+        iGenerationSpan:  document.querySelector("#info-generation span"),
         iBoardSizeSpan:   document.querySelector("#info-board-size span"),
         iDelaySpan:       document.querySelector("#info-delay span"),
         iBoardEngineSpan: document.querySelector("#info-board-type span"),
@@ -664,6 +673,10 @@ window.onload = function(ev) {
                 result = unformatted.slice(begin, end) + result;
             }
             return result;
+        },
+
+        set iGeneration(generation) {
+            this.iGenerationSpan.innerHTML = this._format(generation);
         },
 
         set iBoardSize(size) {
