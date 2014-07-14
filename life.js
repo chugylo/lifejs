@@ -256,7 +256,7 @@ function BaseBoard() {
 
     this.over = function() {
         var parent = document.getElementById("board");
-        parent.removeChild(this.baseEl, parent.firstChild);
+        parent.removeChild(this.baseEl);
     }
 
     this._createBoard = function(tag, attrs) {
