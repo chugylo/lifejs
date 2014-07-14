@@ -7,17 +7,34 @@
  */
 
 function LifeGame(view, args) {
-    function initStateTable() {
-        // fill random 50% cells
+
+    function fill(fn) {
         var stateTable = [];
         for (var x = 0; x < sizeX; x++) {
             var col = [];
             for (var y = 0; y < sizeY; y++) {
-                col.push(Math.random() >= 0.5 ? true : false);
+                col.push(fn());
             }
             stateTable.push(col);
         }
         return stateTable;
+    }
+
+    function initStateTable() {
+        switch (initialFilling) {
+            case "all-alive":
+                return fill(function() {
+                    return true;
+                });
+            case "all-dead":
+                return fill(function() {
+                    return false;
+                });
+            default:
+                return fill(function() {
+                    return Math.random() >= 0.5 ? true : false;
+                });
+        }
     }
 
     function _filterNeighbor(neighbor) {
@@ -216,6 +233,7 @@ function LifeGame(view, args) {
         cellSize = args.cellSize || LifeGame.defaultCellSize,
         delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
+        initialFilling = args.initialFilling || "random-50",
         stateTable = initStateTable(),
         cellsNeighbors = getCellsNeighbors(),
         canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null,
@@ -519,6 +537,7 @@ window.onload = function(ev) {
             options.delay = view.delayVal !== null ? view.delayVal : game.getDelay();
         }
 
+        options.initialFilling = view.ngFillingVal;
         options.boardType = view.engineVal;
         options.hasCanvas = hasCanvas;
 
@@ -606,6 +625,7 @@ window.onload = function(ev) {
         ngXInput:     document.getElementById("new-game-x"),
         ngYInput:     document.getElementById("new-game-y"),
         ngFitInput:   document.getElementById("new-game-fit"),
+        ngFilling:    document.getElementById("new-game-filling"),
         ngStartInput: document.getElementById("new-game-start"),
         iStatusSpan:      document.querySelector("#info-status span"),
         iGenerationSpan:  document.querySelector("#info-generation span"),
@@ -678,6 +698,10 @@ window.onload = function(ev) {
 
         get ngFitVal() {
             return this.ngFitInput.checked;
+        },
+
+        get ngFillingVal() {
+            return this.ngFilling.value;
         },
 
         // status == true - running
