@@ -20,53 +20,36 @@ function LifeGame(args) {
         return stateTable;
     }
 
-    function _filterNeighbor(neighbor) {
-        return stateTable[neighbor[0]][neighbor[1]] ? true : false;
-    }
-
-    function recalcState() {
-        // this function takes a lot of cpu
-        var newStateTable = [];
-        for (var x = 0; x < sizeX; x++) {
-            var col = [];
-            for (var y = 0; y < sizeY; y++) {
-                var cAliveNeighbors = cellsNeighbors[x][y].filter(_filterNeighbor).length;
-                switch (cAliveNeighbors) {
-                    case 2:  // alive will be alive, dead will not
-                        col.push(stateTable[x][y]);
-                        break;
-                    case 3:  // alive will be alive, dead will be alive too
-                        col.push(true);
-                        break;
-                    default:  // any other case leads to the death
-                        col.push(false);
-                        break;
-                }
-            }
-            newStateTable.push(col);
-        }
-        return newStateTable;
-    }
-
     function recalcStateToDiff() {
         // this function takes a lot of cpu
-        var stateDiff = {newAlive: [], newDead: []};
-        for (var x = 0; x < sizeX; x++) {
-            for (var y = 0; y < sizeY; y++) {
-                var cAliveNeighbors = cellsNeighbors[x][y].filter(_filterNeighbor).length;
-                switch (cAliveNeighbors) {
-                    case 2:  // state will not change
-                        break;
-                    case 3:  // dead will return alive
-                        if (stateTable[x][y] === false) {
-                            stateDiff.newAlive.push({x: x, y: y});
-                        }
-                        break;
-                    default:  // alive will die
-                        if (stateTable[x][y] === true) {
-                            stateDiff.newDead.push({x: x, y: y});
-                        }
-                        break;
+        var stateDiff = { newAlive: [], newDead: [] },
+            x = 0,
+            y = 0,
+            cAliveNeighbors = 0,
+            pos = 0,
+            i = 0,
+            cellC = cellsNeighbors.length,
+            neighborsC = 0;
+
+        for (; pos < cellC; pos++) {
+            for (i = 0, cAliveNeighbors = 0, neighborsC = cellsNeighbors[pos].length; i < neighborsC; i++) {
+                if (stateTable[cellsNeighbors[pos][i][0]][cellsNeighbors[pos][i][1]]) {
+                    cAliveNeighbors++;
+                }
+            }
+
+            if (cAliveNeighbors != 2) {
+                x = Math.floor(pos / sizeY);
+                y = pos % sizeY;
+
+                if (cAliveNeighbors == 3) {
+                    if (!stateTable[x][y]) {  // dead cell will return alive
+                        stateDiff.newAlive.push({ x: x, y: y });
+                    }
+                } else {
+                    if (stateTable[x][y]) {  // alive cell will return dead
+                        stateDiff.newDead.push({ x: x, y: y });
+                    }
                 }
             }
         }
@@ -183,20 +166,23 @@ function LifeGame(args) {
 }
 LifeGame.prototype = {
     _getCellsNeighbors: function(sizeX, sizeY) {
-        var cellsNeighbors = [];
-        for (var x = 0; x < sizeX; x++) {
-            var col = [];
-            for (var y = 0; y < sizeY; y++) {
-                var neighbors = [[x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1]];
+        var cellsNeighbors = []
+        x = 0,
+        y = 0
+        neighbors = [];
+
+        for (; x < sizeX; x++) {
+            for (y = 0; y < sizeY; y++) {
+                neighbors = [[x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1]];
                 // overboard
                 neighbors = neighbors.filter(function(neighbor) {
                     return (neighbor[0] >= 0 && neighbor[0] < sizeX
                         && neighbor[1] >= 0 && neighbor[1] < sizeY)
                         ? true : false;
                 });
-                col.push(neighbors);
+                // we push result to the 1-dimensional array for an exellent performance when it will used
+                cellsNeighbors.push(neighbors);
             }
-            cellsNeighbors.push(col);
         }
         return cellsNeighbors;
     }    
