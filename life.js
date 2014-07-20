@@ -190,8 +190,8 @@ LifeGame.prototype = {
                 var neighbors = [[x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1]];
                 // overboard
                 neighbors = neighbors.filter(function(neighbor) {
-                    return (neighbor[0] > 0 && neighbor[0] < sizeX-1
-                        && neighbor[1] > 0 && neighbor[1] < sizeY-1)
+                    return (neighbor[0] >= 0 && neighbor[0] < sizeX
+                        && neighbor[1] >= 0 && neighbor[1] < sizeY)
                         ? true : false;
                 });
                 col.push(neighbors);
