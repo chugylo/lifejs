@@ -82,25 +82,6 @@ function LifeGame(args) {
         });
     }
 
-    function getCellsNeighbors() {
-        var cellsNeighbors = [];
-        for (var x = 0; x < sizeX; x++) {
-            var col = [];
-            for (var y = 0; y < sizeY; y++) {
-                var neighbors = [[x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1]];
-                // overboard
-                neighbors = neighbors.filter(function(neighbor) {
-                    return (neighbor[0] > 0 && neighbor[0] < sizeX-1
-                        && neighbor[1] > 0 && neighbor[1] < sizeY-1)
-                        ? true : false;
-                });
-                col.push(neighbors);
-            }
-            cellsNeighbors.push(col);
-        }
-        return cellsNeighbors;
-    }
-
     this.init = function () {
         board.activate();
         board.redraw(stateTable);
@@ -193,12 +174,32 @@ function LifeGame(args) {
         delay = args.delay === undefined ? 1000 : args.delay,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
         stateTable = initStateTable(),
-        cellsNeighbors = getCellsNeighbors(),
+        cellsNeighbors = this._getCellsNeighbors(sizeX, sizeY),
         canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null,
         domBoard = new DOMBoard(sizeX, sizeY, cellSize),
         board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard,
         interval = 0,
         runs = false;
+}
+LifeGame.prototype = {
+    _getCellsNeighbors: function(sizeX, sizeY) {
+        var cellsNeighbors = [];
+        for (var x = 0; x < sizeX; x++) {
+            var col = [];
+            for (var y = 0; y < sizeY; y++) {
+                var neighbors = [[x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1]];
+                // overboard
+                neighbors = neighbors.filter(function(neighbor) {
+                    return (neighbor[0] > 0 && neighbor[0] < sizeX-1
+                        && neighbor[1] > 0 && neighbor[1] < sizeY-1)
+                        ? true : false;
+                });
+                col.push(neighbors);
+            }
+            cellsNeighbors.push(col);
+        }
+        return cellsNeighbors;
+    }    
 }
 
 
@@ -378,6 +379,9 @@ CanvasBoard.prototype = new BaseBoard();
 
 
 window.onload = function(ev) {
+    // do nothing when tests're running
+    if (!document.getElementById("board") || !document.getElementById("panel")) return;
+
     // check the browser
     // IE 9 should ok
     var hasCanvas;
