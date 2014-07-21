@@ -167,9 +167,8 @@ function LifeGame(args) {
 LifeGame.prototype = {
     _getCellsNeighbors: function(sizeX, sizeY) {
         var cellsNeighbors = []
-        x = 0,
-        y = 0
-        neighbors = [];
+            , x = 0, y = 0
+            , neighbors = [];
 
         for (; x < sizeX; x++) {
             for (y = 0; y < sizeY; y++) {
