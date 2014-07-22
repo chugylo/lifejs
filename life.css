@@ -9,7 +9,20 @@
   font-size: 14px;
 }
 #board, #panel {
-  margin-left: 30px;
+  padding-left: 30px;
+}
+/* all sans font declarations here */
+input, select, option, #info-panel span {
+  font-family: "Dejavu Sans", Verdana, sans;
+}
+.red-text, .too-old {
+  color: #590000;
+}
+.green-text {
+  color: #005900;
+}
+.italic-text {
+  font-style: italic;
 }
 
   /* Headers */
@@ -45,26 +58,24 @@ canvas, #dom-board, .row {
   margin-right: 1px;
 }
 .too-old {
-  color: #590000;
   font-size: 140%;
 }
 
   /* Panel */
+
 .panel-group {
   margin: 10px 0 25px;
 }
 .panel-line {
   margin: 5px 0 5px 10px;
 }
-input {
-  font-family: "Dejavu Sans", Verdana, sans;
+input, select {
   -webkit-border-radius: 3px;
           border-radius: 3px;
 }
-input[type="text"] {
-  padding-left: 3px;
-  border: 0;
-  border-bottom: 1px solid black;
+input[type="number"], select {
+  padding: 2px 2px 2px 3px;
+  border: 1px solid #333;
 }
 input[type="button"] {
   font-weight: bold;
@@ -77,6 +88,12 @@ input[type="button"]:hover {
 input:disabled {
   filter: alpha(opacity=40);
   opacity: .4;
+}
+select {
+  width: 165px;
+}
+option {
+  padding: 0 2px 0 3px;
 }
 #run {
   color: white;
@@ -91,10 +108,10 @@ input:disabled {
   margin-left: 35px;
 }
 #delay {
-  width: 60px;
+  width: 80px;
 }
 #new-game-x, #new-game-y {
-  width: 45px;
+  width: 55px;
 }
 #new-game-start {
   width: 150px;
@@ -102,9 +119,26 @@ input:disabled {
 #engine-dom {
   margin-left: 8px;
 }
-#info-panel {
+#tip-panel {
   font-style: italic;
 }
+#info-panel {
+  float: right;
+  font-weight: bold;
+  width: 440px;
+}
+#info-panel h4 {
+  margin: 10px 0;
+}
+#info-panel div {
+  margin: 5px 5px 5px 10px;
+}
+#info-panel span {
+  font-weight: normal;
+}
+
+  /* Footer */
+
 #footer {
   text-align: center;
   font-family: "Droid Sans", Arial, sans;

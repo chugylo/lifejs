@@ -6,18 +6,35 @@
  * Alpha version.
  */
 
-function LifeGame(args) {
-    function initStateTable() {
-        // fill random 50% cells
+function LifeGame(view, args) {
+
+    function fill(fn) {
         var stateTable = [];
         for (var x = 0; x < sizeX; x++) {
             var col = [];
             for (var y = 0; y < sizeY; y++) {
-                col.push(Math.random() >= 0.5 ? true : false);
+                col.push(fn());
             }
             stateTable.push(col);
         }
         return stateTable;
+    }
+
+    function initStateTable() {
+        switch (initialFilling) {
+            case "all-alive":
+                return fill(function() {
+                    return true;
+                });
+            case "all-dead":
+                return fill(function() {
+                    return false;
+                });
+            default:
+                return fill(function() {
+                    return Math.random() >= 0.5 ? true : false;
+                });
+        }
     }
 
     function recalcStateToDiff() {
@@ -65,9 +82,16 @@ function LifeGame(args) {
         });
     }
 
+    function renewView() {
+        generation++;
+        view.iGeneration = generation;
+        view.renewCellInfo();
+    }
+
     this.init = function () {
         board.activate();
         board.redraw(stateTable);
+        renewView();
     }
 
     this.runLoop = function(newDelay) {
@@ -79,6 +103,7 @@ function LifeGame(args) {
             var diff = recalcStateToDiff();
             applyDiffToStateTable(diff);
             board.redrawDiff(diff);
+            renewView();
         }, delay);
     }
 
@@ -133,6 +158,22 @@ function LifeGame(args) {
         return cellSize;
     }
 
+    this.getBoardSize = function() {
+        return {x: sizeX, y: sizeY};
+    }
+
+    this.getDelay = function() {
+        return delay;
+    }
+
+    this.getBoardEngine = function() {
+        return board.boardType;
+    }
+
+    this.getStateForCell = function(x, y) {
+        return stateTable[x][y];
+    }
+
     this.markCellAlive = function(x, y) {
         stateTable[x][y] = true;
         board.redrawCellAsAlive(x, y);
@@ -151,18 +192,20 @@ function LifeGame(args) {
         domBoard.over();
     }
 
-    var sizeX = args.sizeX === undefined ? 200 : args.sizeX,
-        sizeY = args.sizeY === undefined ? 100 : args.sizeY,
-        cellSize = args.cellSize === undefined ? {x: 5, y: 5} : args.cellSize,
-        delay = args.delay === undefined ? 1000 : args.delay,
+    var sizeX = args.sizeX || 200,
+        sizeY = args.sizeY || 100,
+        cellSize = args.cellSize || LifeGame.defaultCellSize,
+        delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
+        initialFilling = args.initialFilling || "random-50",
         stateTable = initStateTable(),
         cellsNeighbors = this._getCellsNeighbors(sizeX, sizeY),
         canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null,
         domBoard = new DOMBoard(sizeX, sizeY, cellSize),
         board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard,
         interval = 0,
-        runs = false;
+        runs = false,
+        generation = 0;
 }
 LifeGame.prototype = {
     _getCellsNeighbors: function(sizeX, sizeY) {
@@ -186,6 +229,7 @@ LifeGame.prototype = {
         return cellsNeighbors;
     }    
 }
+LifeGame.defaultCellSize = {x: 5, y: 5};
 
 
 function createLifeElem(tag, attrs, insertNow) {
@@ -221,7 +265,7 @@ function BaseBoard() {
 
     this.over = function() {
         var parent = document.getElementById("board");
-        parent.removeChild(this.baseEl, parent.firstChild);
+        parent.removeChild(this.baseEl);
     }
 
     this._createBoard = function(tag, attrs) {
@@ -408,12 +452,103 @@ window.onload = function(ev) {
     }
 
 
-    function assignDrawCbsTo(game) {
-        function onclick(elem, ev, cb, preventDefault) {
+    function unFitWindow() {
+        var board = document.getElementById("board");
+
+        document.body.style.overflow = "";
+        board.style.paddingLeft = "";
+        board.style.paddingTop = "";
+    }
+
+    function startGame() {
+        var options = {},
+            board = document.getElementById("board"),
+            cellC = 0,
+            gameCellC = 0,
+            hugeBoardLim = 50000;
+
+        if (view.ngFitVal) {
+            fitWindow = true;
+
+            // we must style the page before getting its size
+            document.body.style.overflow = "hidden";
+
+            var cellSize = game ? game.getCellSize() : LifeGame.defaultCellSize,
+                clientWidth = document.documentElement.clientWidth,
+                clientHeight = document.documentElement.clientHeight,
+                paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2),
+                paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
+
+            board.style.paddingLeft = paddingLeft+"px";
+            board.style.paddingTop = paddingTop+"px";
+            
+            options.sizeX = Math.floor((clientWidth - 3) / (cellSize.x + 1));
+            options.sizeY = Math.floor((clientHeight - 3) / (cellSize.y + 1));
+
+            view.runVal = true;
+            view.iStatus = true;
+
+            alert('"Fit to window" function will hide scrolls and auto-run the game. Press ESC to show the scrolls back.');
+        } else {
+            fitWindow = false;
+
+            unFitWindow();
+
+            if (!game) {
+                options.sizeX = view.ngXVal;
+                options.sizeY = view.ngYVal;
+            } else {
+                options.sizeX = view.ngXVal || game.getBoardSize().x;
+                options.sizeY = view.ngYVal || game.getBoardSize().y;
+            }
+        }
+
+        cellC = options.sizeX * options.sizeY;
+        if (cellC > hugeBoardLim) {
+            if (!confirm("You are going to create a HUGE board ("+cellC+" cells). Are you sure?")) {
+                if (game) {
+                    options.sizeX = game.getBoardSize().x;
+                    options.sizeY = game.getBoardSize().y;
+
+                    gameCellC = options.sizeX * options.sizeY;
+                    if (gameCellC > hugeBoardLim) {
+                        options = {};
+                    }
+                } else {
+                    options = {};
+                }
+            }
+        }
+
+        if (!game) {
+            options.delay = view.delayVal;
+        } else {
+            options.delay = view.delayVal !== null ? view.delayVal : game.getDelay();
+        }
+
+        options.initialFilling = view.ngFillingVal;
+        options.boardType = view.engineVal;
+        options.hasCanvas = hasCanvas;
+
+        game = new LifeGame(view, options);
+        game.init();
+        assignCbsTo(game);
+        if (view.runVal || fitWindow) {
+            game.runLoop();
+        }
+
+        view.iBoardSize = game.getBoardSize();
+
+        return game;
+    }
+
+    function assignCbsTo(game) {
+        function onmouse(elem, ev, cb, cbBorder, preventDefault) {
             var cellSize = game.getCellSize(),
+                boardSize = game.getBoardSize(),
                 rect = elem.getBoundingClientRect(),
-                clickX = ev.clientX - rect.left - 2,
-                clickY = ev.clientY - rect.top - 2,
+                clickX = ev.clientX - rect.left - 1,
+                clickY = ev.clientY - rect.top - 1,
                 cellWithBorderX = cellSize.x + 1,
                 cellWithBorderY = cellSize.y + 1;
 
@@ -421,7 +556,11 @@ window.onload = function(ev) {
                 var x = parseInt(clickX / cellWithBorderX),
                     y = parseInt(clickY / cellWithBorderY);
 
-                cb(x, y);
+                if (x < boardSize.x && y < boardSize.y) {
+                    cb(x, y);
+                }
+            } else if (typeof cbBorder == "function") {
+                cbBorder();
             }
 
             if (preventDefault === true) {
@@ -431,10 +570,33 @@ window.onload = function(ev) {
 
         game.getBoardElems().forEach(function(elem) {
             elem.onclick = function(ev) {
-                onclick(elem, ev, game.markCellAlive);
+                onmouse(elem, ev, function(x, y) {
+                    game.markCellAlive(x, y);
+                    view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
+                });
             }
             elem.oncontextmenu = function(ev) {
-                onclick(elem, ev, game.markCellDead, true);
+                onmouse(elem, ev, function(x, y) {
+                    game.markCellDead(x, y);
+                    view.iCellInfo = { state: "in", x: x, y: y, cellState: false };
+                }, null, true);
+            }
+            elem.onmouseenter = function() {
+                elem.onmousemove = function(ev) {
+                    onmouse(elem, ev, function(x, y) {
+                        var state = game.getStateForCell(x, y);
+                        view.iCellInfo = { state: "in", x: x, y: y, cellState: state };
+                        view.mouseAboveState = { isActive: true, x: x, y: y };
+                    }, function() {
+                        view.iCellInfo = { state: "border" };
+                        view.mouseAboveState = { isActive: false };
+                    });
+                }
+            }
+            elem.onmouseleave = function() {
+                elem.onmousemove = null;
+                view.iCellInfo = { state: "out" };
+                view.mouseAboveState = { isActive: false };
             }
         });
     }
@@ -444,20 +606,25 @@ window.onload = function(ev) {
     // It deals with DOM for the panel.
     // The board do not utilize it.
     var view = {
-        // returns number value from input `input` what is >= 0 or null
-        _getNumValFromInput: function(input) {
-            var val = input.value,
-                valInt = parseInt(val, 10);
-
-            return valInt >= 0 ? valInt : null;                
-        },
-
+        // Abbreviations:
+        // - ng - new game
+        // - i - info
         runInput:     document.getElementById("run"),
         delayInput:   document.getElementById("delay"),
         ngXInput:     document.getElementById("new-game-x"),
         ngYInput:     document.getElementById("new-game-y"),
         ngFitInput:   document.getElementById("new-game-fit"),
+        ngFilling:    document.getElementById("new-game-filling"),
         ngStartInput: document.getElementById("new-game-start"),
+        iStatusSpan:      document.querySelector("#info-status span"),
+        iGenerationSpan:  document.querySelector("#info-generation span"),
+        iCellInfoSpan:    document.querySelector("#info-cell-info span"),
+        iBoardSizeSpan:   document.querySelector("#info-board-size span"),
+        iDelaySpan:       document.querySelector("#info-delay span"),
+        iBoardEngineSpan: document.querySelector("#info-board-type span"),
+
+        // cached position of the mouse for renew Cell Info at every board redraw
+        mouseAboveState: { isActive: false },
 
         get engineInputs() {
             // converts into the real array
@@ -493,41 +660,151 @@ window.onload = function(ev) {
         },
 
         get delayVal() {
-            return this._getNumValFromInput(this.delayInput);
+            var val = parseInt(this.delayInput.value, 10);
+            return val >= 0 && val <= 3600000 ? val : null;
+        },
+
+        _ngSizeVal: function(input) {
+            var val = parseInt(input.value, 10);
+            return val > 0 && val < 10000 ? val : null;
         },
 
         get ngXVal() {
-            return this._getNumValFromInput(this.ngXInput);
+            return this._ngSizeVal(this.ngXInput);
         },
 
         get ngYVal() {
-            return this._getNumValFromInput(this.ngYInput);
+            return this._ngSizeVal(this.ngYInput);
         },
 
-        enableNgCoords: function() {
+        enableNgSize: function() {
             this.ngXInput.disabled = this.ngYInput.disabled = false;
         },
 
-        disableNgCoords: function() {
+        disableNgSize: function() {
             this.ngXInput.disabled = this.ngYInput.disabled = true;
         },
 
         get ngFitVal() {
             return this.ngFitInput.checked;
+        },
+
+        get ngFillingVal() {
+            return this.ngFilling.value;
+        },
+
+        // status == true - running
+        // status == false - paused
+        set iStatus(status) {
+            var elem = this.iStatusSpan;
+            if (status) {
+                elem.innerHTML = "running";
+                elem.className = "green-text";
+            } else {
+                elem.innerHTML = "paused";
+                elem.className = "red-text";
+            }
+        },
+
+        // 1000000 => "1 000 000"
+        // for non-negative integer numbers only
+        _format: function(num) {
+            var unformatted = String(num),
+                len = unformatted.length,
+                begin = len - 1,
+                end = len,
+                position = 0,
+                result = "";
+
+            for (; begin >= 0; begin--, end--, position++) {
+                if (position && !(position % 3)) {
+                    result = "&#8201;" + result;
+                }
+                result = unformatted.slice(begin, end) + result;
+            }
+            return result;
+        },
+
+        set iGeneration(generation) {
+            this.iGenerationSpan.innerHTML = this._format(generation);
+        },
+
+        set iCellInfo(info) {
+            var baseElem = this.iCellInfoSpan;
+
+            switch (info.state) {
+                case "in":
+                    var stateSpan = document.createElement("span"),
+                        stateText = info.cellState ? "alive" : "dead";
+
+                    stateSpan.className = info.cellState ? "green-text" : "red-text";
+                    stateSpan.innerHTML = stateText;
+
+                    baseElem.className = "";
+                    baseElem.innerHTML = "x="+info.x+", y="+info.y+", ";
+                    baseElem.appendChild(stateSpan);
+
+                    break;
+                case "out":
+                    baseElem.className = "italic-text";
+                    baseElem.innerHTML = "&lt;Hover the mouse above the board to see&gt;";
+
+                    break;
+                case "border":
+                    baseElem.className = "italic-text";
+                    baseElem.innerHTML = "&lt;Cells' border&gt;";
+
+                    break;
+            }
+        },
+
+        renewCellInfo: function() {
+            if (this.mouseAboveState.isActive) {
+                var x = this.mouseAboveState.x,
+                    y = this.mouseAboveState.y;
+
+                this.iCellInfo = { state: "in", x: x, y: y, cellState: game.getStateForCell(x, y) };
+            }
+        },
+
+        set iBoardSize(size) {
+            var cellC = this._format(size.x * size.y);
+            this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;cells)";
+        },
+
+        set iDelay(delay) {
+            var fps = 1000 / delay;
+            this.iDelaySpan.innerHTML = delay+"&#8201;ms ("+fps.toFixed(2)+"&#8201;fps)";
+        },
+
+        set iBoardEngine(engineName) {
+            this.iBoardEngineSpan.innerHTML = engineName;
         }
     }
 
 
-    var game = new LifeGame({ hasCanvas: hasCanvas }),
-        memDelay = view.delayVal !== null ? view.delayVal : 1000;
+    // scrolling can be done only on full DOM therefore we do it outside the startGame()
+    var fitWindow = false,
+        game = startGame();
 
-    game.init();
-    assignDrawCbsTo(game);
+    if (fitWindow) {
+        document.getElementById("board").scrollIntoView();
+    }
+
+    view.iDelay = game.getDelay();
+    view.iBoardEngine = game.getBoardEngine();
+
+    document.body.addEventListener("keyup", function(ev) {
+        if (ev.keyCode == 27) {  // ESC
+            unFitWindow();
+        }
+    }, false);
 
     view.engineInputs.forEach(function(input) {
         input.addEventListener("change", function() {
             if (input == view.engineCurrent) {
-                game.setBoard(view.engineVal)
+                game.setBoard(view.engineVal);
+                view.iBoardEngine = game.getBoardEngine();
             }
         }, false);
     });
@@ -535,59 +812,36 @@ window.onload = function(ev) {
     view.runInput.addEventListener("click", function() {
         if (!view.runVal) {
             view.runVal = true;
-            game.runLoop(memDelay);
+            view.iStatus = true;
+            game.runLoop();
         } else {
             view.runVal = false;
+            view.iStatus = false;
             game.stopLoop();
         }
     }, false);
 
     view.delayInput.addEventListener("change", function() {
         if (view.delayVal !== null) {
-            memDelay = view.delayVal;
+            view.iDelay = view.delayVal;
             game.changeDelay(view.delayVal);
         }
     }, false);
 
     view.ngFitInput.addEventListener("change", function() {
         if (view.ngFitVal) {
-            view.disableNgCoords();
+            view.disableNgSize();
         } else {
-            view.enableNgCoords();
+            view.enableNgSize();
         }
     }, false);
 
     view.ngStartInput.addEventListener("click", function() {
-        var w = 0,
-            h = 0;
+        game.over();
+        startGame();
 
-        if (view.ngFitVal) {
-            // it has issue with scrolls so actually we subtract 3 lines
-            w = parseInt(innerWidth / 6) - 3;
-            h = parseInt(innerHeight / 6) - 3;
-        } else {
-            w = view.ngXVal;
-            h = view.ngYVal;
-        }
-
-        if (w * h > 50000) {
-            if (!confirm("You are going to create a HUGE board ("+w*h+" cells). Are you sure?")) return;
-        }
-
-        if (w !== null && w > 0 && h !== null && h > 0) {
-            game.over();
-            game = new LifeGame({
-                sizeX: w,
-                sizeY: h,
-                boardType: view.engineVal,
-                delay: memDelay,
-                hasCanvas: hasCanvas
-            });
-            game.init();
-            assignDrawCbsTo(game);
-            if (view.runVal) {
-                game.runLoop();
-            }
+        if (fitWindow) {
+            document.getElementById("board").scrollIntoView();
         }
     }, false);
 }
