@@ -9,13 +9,12 @@
 function LifeGame(view, args) {
 
     function fill(fn) {
-        var stateTable = [];
-        for (var x = 0; x < sizeX; x++) {
-            var col = [];
-            for (var y = 0; y < sizeY; y++) {
-                col.push(fn());
-            }
-            stateTable.push(col);
+        var stateTable = []
+          , pos = 0
+          , cellCount = sizeX * sizeY;
+
+        for (; pos < cellCount; pos++) {
+            stateTable.push(fn());
         }
         return stateTable;
     }
@@ -39,33 +38,27 @@ function LifeGame(view, args) {
 
     function recalcStateToDiff() {
         // this function takes a lot of cpu
-        var stateDiff = { newAlive: [], newDead: [] },
-            x = 0,
-            y = 0,
-            cAliveNeighbors = 0,
-            pos = 0,
-            i = 0,
-            cellC = cellsNeighbors.length,
-            neighborsC = 0;
+        var stateDiff = { newAlive: [], newDead: [] }
+          , cAliveNeighbors = 0
+          , pos = 0, i = 0
+          , cellCount = cellsNeighbors.length
+          , neighborsCount = 0;
 
-        for (; pos < cellC; pos++) {
-            for (i = 0, cAliveNeighbors = 0, neighborsC = cellsNeighbors[pos].length; i < neighborsC; i++) {
-                if (stateTable[cellsNeighbors[pos][i][0]][cellsNeighbors[pos][i][1]]) {
+        for (; pos < cellCount; pos++) {
+            for (i = 0, cAliveNeighbors = 0, neighborsCount = cellsNeighbors[pos].length; i < neighborsCount; i++) {
+                if (stateTable[cellsNeighbors[pos][i]]) {
                     cAliveNeighbors++;
                 }
             }
 
             if (cAliveNeighbors != 2) {
-                x = Math.floor(pos / sizeY);
-                y = pos % sizeY;
-
                 if (cAliveNeighbors == 3) {
-                    if (!stateTable[x][y]) {  // dead cell will return alive
-                        stateDiff.newAlive.push({ x: x, y: y });
+                    if (!stateTable[pos]) {  // dead cell will return alive
+                        stateDiff.newAlive.push(pos);
                     }
                 } else {
-                    if (stateTable[x][y]) {  // alive cell will return dead
-                        stateDiff.newDead.push({ x: x, y: y });
+                    if (stateTable[pos]) {  // alive cell will return dead
+                        stateDiff.newDead.push(pos);
                     }
                 }
             }
@@ -74,18 +67,28 @@ function LifeGame(view, args) {
     }
 
     function applyDiffToStateTable(diff) {
-        diff.newAlive.forEach(function(d) {
-            stateTable[d.x][d.y] = true;
-        });
-        diff.newDead.forEach(function(d) {
-            stateTable[d.x][d.y] = false;
-        });
+        var i = 0
+          , newAlive = diff.newAlive
+          , newDead = diff.newDead
+          , newAliveLen = newAlive.length
+          , newDeadLen = newDead.length;
+
+        for (; i < newAliveLen; i++) {
+            stateTable[ newAlive[i] ] = true;
+        }
+        for (i = 0; i < newDeadLen; i++) {
+            stateTable[ newDead[i] ] = false;
+        }
     }
 
     function renewView() {
         generation++;
         view.iGeneration = generation;
         view.renewCellInfo();
+    }
+
+    function XYToPos(x, y) {
+        return x * sizeY + y;
     }
 
     this.init = function () {
@@ -171,17 +174,21 @@ function LifeGame(view, args) {
     }
 
     this.getStateForCell = function(x, y) {
-        return stateTable[x][y];
+        return stateTable[ XYToPos(x, y) ];
     }
 
     this.markCellAlive = function(x, y) {
-        stateTable[x][y] = true;
-        board.redrawCellAsAlive(x, y);
+        var pos = XYToPos(x, y);
+
+        stateTable[pos] = true;
+        board.redrawCellAsAlive(pos);
     }
 
     this.markCellDead = function(x, y) {
-        stateTable[x][y] = false;
-        board.redrawCellAsDead(x, y);
+        var pos = XYToPos(x, y);
+
+        stateTable[pos] = false;
+        board.redrawCellAsDead(pos);
     }
 
     this.over = function() {
@@ -210,8 +217,8 @@ function LifeGame(view, args) {
 LifeGame.prototype = {
     _getCellsNeighbors: function(sizeX, sizeY) {
         var cellsNeighbors = []
-            , x = 0, y = 0
-            , neighbors = [];
+          , x = 0, y = 0
+          , neighbors = [];
 
         for (; x < sizeX; x++) {
             for (y = 0; y < sizeY; y++) {
@@ -221,6 +228,10 @@ LifeGame.prototype = {
                     return (neighbor[0] >= 0 && neighbor[0] < sizeX
                         && neighbor[1] >= 0 && neighbor[1] < sizeY)
                         ? true : false;
+                });
+                // convert coords to 1-dim index
+                neighbors = neighbors.map(function(neighbor) {
+                    return neighbor[0] * sizeY + neighbor[1];
                 });
                 // we push result to the 1-dimensional array for an exellent performance when it will used
                 cellsNeighbors.push(neighbors);
@@ -291,7 +302,8 @@ function BaseBoard() {
 
 
 function DOMBoard(sizeX, sizeY, cellSize) {
-    var elTable = [];
+    var elTable = []
+      , cellCount = sizeX * sizeY;
 
     this.boardType = "DOM";
 
@@ -316,40 +328,42 @@ function DOMBoard(sizeX, sizeY, cellSize) {
                 cellDiv.style.height = height;
                 cellDiv.className = "cell";
                 rowDiv.appendChild(cellDiv);
-                if (elTable[x] === undefined) {
-                    elTable[x] = [];
-                }
-                elTable[x][y] = cellDiv;
+                elTable[ x * sizeY + y ] = cellDiv;
             }
             board.baseEl.appendChild(rowDiv);
         }
     })(this);
 
     this.redraw = function(stateTable) {
-        // high cpu load!
-        stateTable.map(function(col, x) {
-            col.map(function(v, y) {
-                elTable[x][y].style.backgroundColor = v ? "black" : "white";
-            });
-        });
+        var i = 0;
+
+        for (; i < cellCount; i++) {
+            elTable[i].style.backgroundColor = stateTable[i] ? "black" : "white";
+        }
     }
 
     this.redrawDiff = function(diff) {
-        // works faster than redrawing entire board
-        diff.newAlive.forEach(function(d) {
-            elTable[d.x][d.y].style.backgroundColor = "black";
-        });
-        diff.newDead.forEach(function(d) {
-            elTable[d.x][d.y].style.backgroundColor = "white";
-        });
+        // this function takes a lot of cpu
+        var i = 0
+          , newAlive = diff.newAlive
+          , newDead = diff.newDead
+          , newAliveLen = newAlive.length
+          , newDeadLen = newDead.length;
+
+        for (; i < newAliveLen; i++) {
+            elTable[ newAlive[i] ].style.backgroundColor = "black";
+        }
+        for (i = 0; i < newDeadLen; i++) {
+            elTable[ newDead[i] ].style.backgroundColor = "white";
+        }
     }
 
-    this.redrawCellAsAlive = function(x, y) {
-        elTable[x][y].style.backgroundColor = "black";
+    this.redrawCellAsAlive = function(pos) {
+        elTable[pos].style.backgroundColor = "black";
     }
 
-    this.redrawCellAsDead = function(x, y) {
-        elTable[x][y].style.backgroundColor = "white";
+    this.redrawCellAsDead = function(pos) {
+        elTable[pos].style.backgroundColor = "white";
     }
 }
 DOMBoard.prototype = new BaseBoard();
@@ -364,44 +378,59 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
     this.baseEl.width = this.width;
     this.baseEl.height = this.height;
     
-    var cx = this.baseEl.getContext("2d"),
-        cellSizeX = this.cellSize.x,
-        cellSizeY = this.cellSize.y;
+    var cx = this.baseEl.getContext("2d")
+      , cellSizeX = this.cellSize.x
+      , cellSizeY = this.cellSize.y
+      , cellCount = sizeX * sizeY
+      , cellMap = [];
 
+    (function() {
+        var pos = 0;
+
+        for (; pos < cellCount; pos++) {
+            cellMap.push({
+                x: Math.floor(pos / sizeY) * (cellSizeX + 1) + 1
+              , y: pos % sizeY * (cellSizeY + 1) + 1
+            });
+        }
+    })();
 
     this.redraw = function(stateTable) {
-        stateTable.map(function(col, x) {
-            col.map(function(v, y) {
-                cx.fillStyle = v ? "#000" : "#fff";
-                cx.fillRect(x*6+1, y*6+1, cellSizeX, cellSizeY);
-            });
-        });
+        var i = 0;
+
+        for (; i < cellCount; i++) {
+            cx.fillStyle = stateTable[i] ? "black" : "white";
+            cx.fillRect(cellMap[i].x, cellMap[i].y, cellSizeX, cellSizeY);
+        }
     }
 
     this.redrawDiff = function(diff) {
-        cx.fillStyle = "#000";
-        diff.newAlive.forEach(function(d) {
-            cx.fillRect(d.x*6+1, d.y*6+1, cellSizeX, cellSizeY);
-        });
+        // this function takes a lot of cpu
+        var i = 0
+          , newAlive = diff.newAlive
+          , newDead = diff.newDead
+          , newAliveLen = newAlive.length
+          , newDeadLen = newDead.length;
 
-        cx.fillStyle = "#fff";
-        diff.newDead.forEach(function(d) {
-            cx.fillRect(d.x*6+1, d.y*6+1, cellSizeX, cellSizeY);
-        });
+        cx.fillStyle = "black";
+        for (; i < newAliveLen; i++) {
+            cx.fillRect(cellMap[ newAlive[i] ].x, cellMap[ newAlive[i] ].y, cellSizeX, cellSizeY);
+        }
 
-        // debug, check sizes
-        // cx.fillStyle = "red";
-        // cx.fillRect(sizeX * 6 - 6, sizeY * 6 - 6, 5, 5);
+        cx.fillStyle = "white";
+        for (i = 0; i < newDeadLen; i++) {
+            cx.fillRect(cellMap[ newDead[i] ].x, cellMap[ newDead[i] ].y, cellSizeX, cellSizeY);
+        }
     }
 
-    this.redrawCellAsAlive = function(x, y) {
-        cx.fillStyle = "#000";
-        cx.fillRect(x*6+1, y*6+1, cellSizeX, cellSizeY);
+    this.redrawCellAsAlive = function(pos) {
+        cx.fillStyle = "black";
+        cx.fillRect(cellMap[pos].x, cellMap[pos].y, cellSizeX, cellSizeY);
     }
 
-    this.redrawCellAsDead = function(x, y) {
-        cx.fillStyle = "#fff";
-        cx.fillRect(x*6+1, y*6+1, cellSizeX, cellSizeY);
+    this.redrawCellAsDead = function(pos) {
+        cx.fillStyle = "white";
+        cx.fillRect(cellMap[pos].x, cellMap[pos].y, cellSizeX, cellSizeY);
     }
 }
 CanvasBoard.prototype = new BaseBoard();
