@@ -451,6 +451,63 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
 CanvasBoard.prototype = new BaseBoard();
 
 
+function I18n() {
+    var lang = document.getElementsByTagName("html")[0].getAttribute("lang") || "en"
+      , _ = {}
+      , key = ""
+      , line = "";
+
+    // standard language is always English
+    for (key in LifeGameLang.en) {
+        line = LifeGameLang[lang][key] ? LifeGameLang[lang][key] : LifeGameLang.en[key];
+        _[key] = line;
+    }
+
+    return _;
+}
+I18n.fillPage = function(_) {
+    function prepend(elem, text) {
+        elem.innerHTML = text + elem.innerHTML;
+    }
+    function append(elem, text) {
+        elem.innerHTML = elem.innerHTML + text;
+    }
+
+    var stepDelay, newGameLabels, fillingOptions, engineLabels;
+
+    document.getElementsByTagName("title")[0].innerHTML = _.title;
+    document.getElementsByTagName("h1")[0].innerHTML = _.header;
+    qs("#info-panel h4").innerHTML = _.pInfo;
+    prepend(getId("info-status"), _.piStatus);
+    qs("#info-status span").innerHTML = _.piStatusStopped;
+    prepend(getId("info-generation"), _.piGeneration);
+    prepend(getId("info-cell-info"), _.piCellInfo);
+    qs("#info-cell-info span").innerHTML = _.piCellInfoEmpty;
+    prepend(getId("info-delay"), _.piDelay);
+    prepend(getId("info-board-size"), _.piBoardSize);
+    prepend(getId("info-board-type"), _.piBoardEngine);
+    getId("run").value = _.pRun;
+    stepDelay = qs("#flow-control-panel label");
+    stepDelay.innerHTML = _.pStepDelay + stepDelay.innerHTML + _.pStepDelayMs;
+    qs("#new-game-panel h4").innerHTML = _.pNewGame;
+    newGameLabels = getId("new-game-panel").querySelectorAll("label");
+    prepend(newGameLabels[0], _.pBoardSize);
+    append(newGameLabels[2], _.pFit);
+    prepend(newGameLabels[3], _.pFilling);
+    fillingOptions = getId("new-game-filling").querySelectorAll("option");
+    fillingOptions[0].innerHTML = _.pRandom25;
+    fillingOptions[1].innerHTML = _.pAllDead;
+    fillingOptions[2].innerHTML = _.pAllAlive;
+    getId("new-game-start").value = _.pStart;
+    qs("#board-engine-panel h4").innerHTML = _.pBoardEngine;
+    engineLabels = getId("board-engine-panel").querySelectorAll("label");
+    append(engineLabels[0], _.pCanvasEngine);
+    append(engineLabels[1], _.pDOMEngine);
+    getId("tip-panel").innerHTML = _.pTip;
+    append(getId("footer"), _.rights);
+}
+
+
 window.onload = function(ev) {
     // do nothing when tests're running
     if (!getId("board") || !getId("panel")) return;
@@ -534,7 +591,7 @@ window.onload = function(ev) {
             view.runVal = true;
             view.iStatus = true;
 
-            alert('"Fit to window" function will hide scrolls and auto-run the game. Press ESC to show the scrolls back.');
+            alert(_.fitAlert);
         } else {
             fitWindow = false;
 
@@ -551,7 +608,7 @@ window.onload = function(ev) {
 
         cellC = options.sizeX * options.sizeY;
         if (cellC > hugeBoardLim) {
-            if (!confirm("You are going to create a HUGE board ("+cellC+" cells). Are you sure?")) {
+            if (!confirm(_.hugeConfirm1+cellC+_.hugeConfirm2)) {
                 if (game) {
                     options.sizeX = game.getBoardSize().x;
                     options.sizeY = game.getBoardSize().y;
@@ -649,6 +706,10 @@ window.onload = function(ev) {
     }
 
 
+    var _ = I18n();
+    I18n.fillPage(_);
+
+
     // The view, according to MVC.
     // It deals with DOM for the panel.
     // The board does not utilize it.
@@ -698,13 +759,14 @@ window.onload = function(ev) {
         // true - is running
         // false - is in pause
       , get runVal() {
-            return this.runInput.value === "Pause";
+            return this.runInput.getAttribute("data-state") == "running";
         }
 
         // state == true - launch
         // state == false - pause
       , set runVal(state) {
-            this.runInput.value = state ? "Pause" : "Run";
+            this.runInput.setAttribute("data-state", state ? "running" : "paused");
+            this.runInput.value = state ? _.pPause : _.pRun;
         }
 
       , get delayVal() {
@@ -746,10 +808,10 @@ window.onload = function(ev) {
       , set iStatus(status) {
             var elem = this.iStatusSpan;
             if (status) {
-                elem.innerHTML = "running";
+                elem.innerHTML = _.piStatusRunning;
                 elem.className = "green-text";
             } else {
-                elem.innerHTML = "paused";
+                elem.innerHTML = _.piStatusPaused;
                 elem.className = "red-text";
             }
         }
@@ -783,7 +845,7 @@ window.onload = function(ev) {
             switch (info.state) {
                 case "in":
                     var stateSpan = el("span")
-                      , stateText = info.cellState ? "alive" : "dead";
+                      , stateText = info.cellState ? _.piCellInfoAlive : _.piCellInfoDead;
 
                     stateSpan.className = info.cellState ? "green-text" : "red-text";
                     stateSpan.innerHTML = stateText;
@@ -794,11 +856,11 @@ window.onload = function(ev) {
                     break;
                 case "out":
                     baseElem.className = "italic-text";
-                    baseElem.innerHTML = "&lt;Hover the mouse above the board to see&gt;";
+                    baseElem.innerHTML = _.piCellInfoEmpty;
                     break;
                 case "border":
                     baseElem.className = "italic-text";
-                    baseElem.innerHTML = "&lt;Cells' border&gt;";
+                    baseElem.innerHTML = _.piCellInfoBorder;
                     break;
             }
         }
@@ -814,12 +876,12 @@ window.onload = function(ev) {
 
       , set iBoardSize(size) {
             var cellC = this._format(size.x * size.y);
-            this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;cells)";
+            this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;"+_.piCells+")";
         }
 
       , set iDelay(delay) {
             var fps = 1000 / delay;
-            this.iDelaySpan.innerHTML = delay+"&#8201;ms ("+fps.toFixed(2)+"&#8201;fps)";
+            this.iDelaySpan.innerHTML = delay+"&#8201;"+_.piMs+" ("+fps.toFixed(2)+"&#8201;"+_.piFps+")";
         }
 
       , set iBoardEngine(engineName) {
