@@ -409,6 +409,9 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
         }
     })();
 
+    cx.fillStyle = "#aea";
+    cx.fillRect(0, 0, this.width, this.height);
+
     this.redraw = function(stateTable) {
         for (var i = 0; i < cellCount; i++) {
             cx.fillStyle = stateTable[i] ? "black" : "white";
