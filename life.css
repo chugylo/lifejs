@@ -101,7 +101,7 @@ option {
   margin-left: 15px;
   background-color: #005900;
 }
-#run[value="Pause"] {
+#run[data-state="running"] {
   background-color: #590000;
 }
 #flow-control-panel label {
