@@ -31,7 +31,7 @@ function LifeGame(view, args) {
                 });
             default:
                 return fill(function() {
-                    return Math.random() >= 0.5 ? true : false;
+                    return Math.random() >= 0.75 ? true : false;
                 });
         }
     }
@@ -204,7 +204,7 @@ function LifeGame(view, args) {
         cellSize = args.cellSize || LifeGame.defaultCellSize,
         delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000,
         hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
-        initialFilling = args.initialFilling || "random-50",
+        initialFilling = args.initialFilling || "random-25",
         stateTable = initStateTable(),
         cellsNeighbors = this._getCellsNeighbors(sizeX, sizeY),
         canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null,
