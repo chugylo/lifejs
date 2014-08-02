@@ -1,3 +1,5 @@
+// modern browsers only (IE10+)
+
 "use strict";
 
 QUnit.module("Neighbors list");

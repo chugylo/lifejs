@@ -6,6 +6,15 @@
  * Alpha version.
  */
 
+
+(function() {
+
+// shortcuts
+var getId = document.getElementById.bind(document)
+  , qs = document.querySelector.bind(document)
+  , el = document.createElement.bind(document);
+
+
 function LifeGame(view, args) {
 
     function fill(fn) {
@@ -14,11 +23,12 @@ function LifeGame(view, args) {
           , cellCount = sizeX * sizeY;
 
         for (; pos < cellCount; pos++) {
-            stateTable.push(fn());
+            stateTable.push( fn() );
         }
         return stateTable;
     }
 
+    // the state table is a 1-dimensional array for make it awesome fast
     function initStateTable() {
         switch (initialFilling) {
             case "all-alive":
@@ -36,23 +46,23 @@ function LifeGame(view, args) {
         }
     }
 
+    // the function takes a lot of cpu
     function recalcStateToDiff() {
-        // this function takes a lot of cpu
         var stateDiff = { newAlive: [], newDead: [] }
-          , cAliveNeighbors = 0
+          , activeNeighborsCount = 0
           , pos = 0, i = 0
           , cellCount = cellsNeighbors.length
           , neighborsCount = 0;
 
         for (; pos < cellCount; pos++) {
-            for (i = 0, cAliveNeighbors = 0, neighborsCount = cellsNeighbors[pos].length; i < neighborsCount; i++) {
-                if (stateTable[cellsNeighbors[pos][i]]) {
-                    cAliveNeighbors++;
+            for (i = 0, activeNeighborsCount = 0, neighborsCount = cellsNeighbors[pos].length; i < neighborsCount; i++) {
+                if (stateTable[ cellsNeighbors[pos][i] ]) {
+                    activeNeighborsCount++;
                 }
             }
 
-            if (cAliveNeighbors != 2) {
-                if (cAliveNeighbors == 3) {
+            if (activeNeighborsCount != 2) {
+                if (activeNeighborsCount == 3) {
                     if (!stateTable[pos]) {  // dead cell will return alive
                         stateDiff.newAlive.push(pos);
                     }
@@ -97,9 +107,9 @@ function LifeGame(view, args) {
         renewView();
     }
 
+    // must be called after .init()
+    // newDelay is a positive number or zero
     this.runLoop = function(newDelay) {
-        // must be called after .init()
-        // newDelay is a positive number or zero
         delay = newDelay === undefined ? delay : newDelay;
         runs = true;
         interval = setInterval(function() {
@@ -110,14 +120,14 @@ function LifeGame(view, args) {
         }, delay);
     }
 
+    // must be called after .init()
     this.stopLoop = function() {
-        // must be called after .init()
         runs = false;
         clearInterval(interval);
     }
 
+    // newDelay is a positive number or zero
     this.changeDelay = function(newDelay) {
-        // newDelay is a positive number or zero
         if (runs) {
             this.stopLoop();
             this.runLoop(newDelay);
@@ -129,8 +139,8 @@ function LifeGame(view, args) {
     this.setBoard = function(boardType) {
         if (!hasCanvas) return;
 
-        var newBoard,
-            memRuns = runs;
+        var newBoard
+          , memRuns = runs;
 
         if (runs) {
             this.stopLoop();
@@ -162,7 +172,7 @@ function LifeGame(view, args) {
     }
 
     this.getBoardSize = function() {
-        return {x: sizeX, y: sizeY};
+        return { x: sizeX, y: sizeY };
     }
 
     this.getDelay = function() {
@@ -179,14 +189,12 @@ function LifeGame(view, args) {
 
     this.markCellAlive = function(x, y) {
         var pos = XYToPos(x, y);
-
         stateTable[pos] = true;
         board.redrawCellAsAlive(pos);
     }
 
     this.markCellDead = function(x, y) {
         var pos = XYToPos(x, y);
-
         stateTable[pos] = false;
         board.redrawCellAsDead(pos);
     }
@@ -199,22 +207,23 @@ function LifeGame(view, args) {
         domBoard.over();
     }
 
-    var sizeX = args.sizeX || 200,
-        sizeY = args.sizeY || 100,
-        cellSize = args.cellSize || LifeGame.defaultCellSize,
-        delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000,
-        hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas,
-        initialFilling = args.initialFilling || "random-25",
-        stateTable = initStateTable(),
-        cellsNeighbors = this._getCellsNeighbors(sizeX, sizeY),
-        canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null,
-        domBoard = new DOMBoard(sizeX, sizeY, cellSize),
-        board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard,
-        interval = 0,
-        runs = false,
-        generation = 0;
+    var sizeX = args.sizeX || 200
+      , sizeY = args.sizeY || 100
+      , cellSize = args.cellSize || LifeGame.defaultCellSize
+      , delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000
+      , hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas
+      , initialFilling = args.initialFilling || "random-25"
+      , stateTable = initStateTable()
+      , cellsNeighbors = this._getCellsNeighbors(sizeX, sizeY)
+      , canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null
+      , domBoard = new DOMBoard(sizeX, sizeY, cellSize)
+      , board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard
+      , interval = 0
+      , runs = false
+      , generation = 0;
 }
 LifeGame.prototype = {
+    // this function has been moved to the prototype to make it testable
     _getCellsNeighbors: function(sizeX, sizeY) {
         var cellsNeighbors = []
           , x = 0, y = 0
@@ -222,8 +231,8 @@ LifeGame.prototype = {
 
         for (; x < sizeX; x++) {
             for (y = 0; y < sizeY; y++) {
-                neighbors = [[x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1]];
-                // overboard
+                neighbors = [ [x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1] ];
+                // filter values which are out of the board
                 neighbors = neighbors.filter(function(neighbor) {
                     return (neighbor[0] >= 0 && neighbor[0] < sizeX
                         && neighbor[1] >= 0 && neighbor[1] < sizeY)
@@ -233,29 +242,31 @@ LifeGame.prototype = {
                 neighbors = neighbors.map(function(neighbor) {
                     return neighbor[0] * sizeY + neighbor[1];
                 });
-                // we push result to the 1-dimensional array for an exellent performance when it will used
+                // we push result to the 1-dimensional array for
+                // an exellent performance when it will used
                 cellsNeighbors.push(neighbors);
             }
         }
         return cellsNeighbors;
     }    
 }
-LifeGame.defaultCellSize = {x: 5, y: 5};
+LifeGame.defaultCellSize = { x: 5, y: 5 };
 
 
 function createLifeElem(tag, attrs, insertNow) {
-    var el = document.createElement(tag);
+    var elem = el(tag)
+      , a, parent;
 
-    for (var a in attrs) {
-        el[a] = attrs[a];
+    for (a in attrs) {
+        elem[a] = attrs[a];
     }
 
     if (insertNow) {
-        var parent = document.getElementById("board");
-        parent.insertBefore(el, parent.firstChild);
+        parent = getId("board");
+        parent.insertBefore(elem, parent.firstChild);
     }
 
-    return el;
+    return elem;
 }
 
 
@@ -275,13 +286,14 @@ function BaseBoard() {
     }
 
     this.over = function() {
-        var parent = document.getElementById("board");
+        var parent = getId("board");
         parent.removeChild(this.baseEl);
     }
 
     this._createBoard = function(tag, attrs) {
-        var board = createLifeElem(tag, attrs || {}),
-            parent = document.getElementById("board");
+        var board = createLifeElem(tag, attrs || {})
+          , parent = getId("board");
+
         board.style.display = "none";
         parent.insertBefore(board, parent.firstChild);
         return board;
@@ -301,6 +313,8 @@ function BaseBoard() {
 }
 
 
+// draw a board on a huge tree of DOM elements
+// slow, use Canvas what is much faster
 function DOMBoard(sizeX, sizeY, cellSize) {
     var elTable = []
       , cellCount = sizeX * sizeY;
@@ -315,15 +329,18 @@ function DOMBoard(sizeX, sizeY, cellSize) {
 
     // this section takes a lot of time!
     (function(board) {
-        var width = board.cellSize.x + "px",
-            height = board.cellSize.y + "px";
+        var width = board.cellSize.x + "px"
+          , height = board.cellSize.y + "px"
+          , y = 0, x = 0
+          , rowDiv
+          , cellDiv;
 
-        for (var y = 0; y < board.sizeY; y++) {
-            var rowDiv = document.createElement("div");
+        for (; y < board.sizeY; y++) {
+            rowDiv = el("div");
             rowDiv.style.height = height;
             rowDiv.className = "row";
-            for (var x = 0; x < board.sizeX; x++) {
-                var cellDiv = document.createElement("div");
+            for (x = 0; x < board.sizeX; x++) {
+                cellDiv = el("div");
                 cellDiv.style.width = width;
                 cellDiv.style.height = height;
                 cellDiv.className = "cell";
@@ -335,15 +352,13 @@ function DOMBoard(sizeX, sizeY, cellSize) {
     })(this);
 
     this.redraw = function(stateTable) {
-        var i = 0;
-
-        for (; i < cellCount; i++) {
+        for (var i = 0; i < cellCount; i++) {
             elTable[i].style.backgroundColor = stateTable[i] ? "black" : "white";
         }
     }
 
+    // the function takes a lot of cpu
     this.redrawDiff = function(diff) {
-        // this function takes a lot of cpu
         var i = 0
           , newAlive = diff.newAlive
           , newDead = diff.newDead
@@ -369,6 +384,7 @@ function DOMBoard(sizeX, sizeY, cellSize) {
 DOMBoard.prototype = new BaseBoard();
 
 
+// draw a board in a <canvas> tag
 function CanvasBoard(sizeX, sizeY, cellSize) {
     this.boardType = "Canvas";
 
@@ -385,9 +401,7 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
       , cellMap = [];
 
     (function() {
-        var pos = 0;
-
-        for (; pos < cellCount; pos++) {
+        for (var pos = 0; pos < cellCount; pos++) {
             cellMap.push({
                 x: Math.floor(pos / sizeY) * (cellSizeX + 1) + 1
               , y: pos % sizeY * (cellSizeY + 1) + 1
@@ -396,16 +410,14 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
     })();
 
     this.redraw = function(stateTable) {
-        var i = 0;
-
-        for (; i < cellCount; i++) {
+        for (var i = 0; i < cellCount; i++) {
             cx.fillStyle = stateTable[i] ? "black" : "white";
             cx.fillRect(cellMap[i].x, cellMap[i].y, cellSizeX, cellSizeY);
         }
     }
 
+    // the function takes a lot of cpu
     this.redrawDiff = function(diff) {
-        // this function takes a lot of cpu
         var i = 0
           , newAlive = diff.newAlive
           , newDead = diff.newDead
@@ -438,7 +450,7 @@ CanvasBoard.prototype = new BaseBoard();
 
 window.onload = function(ev) {
     // do nothing when tests're running
-    if (!document.getElementById("board") || !document.getElementById("panel")) return;
+    if (!getId("board") || !getId("panel")) return;
 
     // check the browser
     // IE 9 should ok
@@ -450,6 +462,7 @@ window.onload = function(ev) {
         || typeof Event.prototype.preventDefault != "function"
         || typeof document.querySelector != "function"
         || typeof document.querySelectorAll != "function"
+        || typeof Function.bind != "function"
         || !ev
         // check getters
         || (function() {
@@ -482,19 +495,20 @@ window.onload = function(ev) {
 
 
     function unFitWindow() {
-        var board = document.getElementById("board");
-
+        var board = getId("board");
         document.body.style.overflow = "";
         board.style.paddingLeft = "";
         board.style.paddingTop = "";
     }
 
+    // start a new game in the beginning or
+    // at the clicking `Start new game` button
     function startGame() {
-        var options = {},
-            board = document.getElementById("board"),
-            cellC = 0,
-            gameCellC = 0,
-            hugeBoardLim = 50000;
+        var options = {}
+          , board = getId("board")
+          , cellC = 0
+          , gameCellC = 0
+          , hugeBoardLim = 50000;
 
         if (view.ngFitVal) {
             fitWindow = true;
@@ -502,11 +516,11 @@ window.onload = function(ev) {
             // we must style the page before getting its size
             document.body.style.overflow = "hidden";
 
-            var cellSize = game ? game.getCellSize() : LifeGame.defaultCellSize,
-                clientWidth = document.documentElement.clientWidth,
-                clientHeight = document.documentElement.clientHeight,
-                paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2),
-                paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
+            var cellSize = game ? game.getCellSize() : LifeGame.defaultCellSize
+              , clientWidth = document.documentElement.clientWidth
+              , clientHeight = document.documentElement.clientHeight
+              , paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2)
+              , paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
 
             board.style.paddingLeft = paddingLeft+"px";
             board.style.paddingTop = paddingTop+"px";
@@ -571,19 +585,20 @@ window.onload = function(ev) {
         return game;
     }
 
+    // user interaction with boards
     function assignCbsTo(game) {
         function onmouse(elem, ev, cb, cbBorder, preventDefault) {
-            var cellSize = game.getCellSize(),
-                boardSize = game.getBoardSize(),
-                rect = elem.getBoundingClientRect(),
-                clickX = ev.clientX - rect.left - 1,
-                clickY = ev.clientY - rect.top - 1,
-                cellWithBorderX = cellSize.x + 1,
-                cellWithBorderY = cellSize.y + 1;
+            var cellSize = game.getCellSize()
+              , boardSize = game.getBoardSize()
+              , rect = elem.getBoundingClientRect()
+              , clickX = ev.clientX - rect.left - 1
+              , clickY = ev.clientY - rect.top - 1
+              , cellWithBorderX = cellSize.x + 1
+              , cellWithBorderY = cellSize.y + 1;
 
             if (clickX % cellWithBorderX && clickY % cellWithBorderY) {
-                var x = parseInt(clickX / cellWithBorderX),
-                    y = parseInt(clickY / cellWithBorderY);
+                var x = parseInt(clickX / cellWithBorderX)
+                  , y = parseInt(clickY / cellWithBorderY);
 
                 if (x < boardSize.x && y < boardSize.y) {
                     cb(x, y);
@@ -633,98 +648,99 @@ window.onload = function(ev) {
 
     // The view, according to MVC.
     // It deals with DOM for the panel.
-    // The board do not utilize it.
+    // The board does not utilize it.
     var view = {
         // Abbreviations:
         // - ng - new game
         // - i - info
-        runInput:     document.getElementById("run"),
-        delayInput:   document.getElementById("delay"),
-        ngXInput:     document.getElementById("new-game-x"),
-        ngYInput:     document.getElementById("new-game-y"),
-        ngFitInput:   document.getElementById("new-game-fit"),
-        ngFilling:    document.getElementById("new-game-filling"),
-        ngStartInput: document.getElementById("new-game-start"),
-        iStatusSpan:      document.querySelector("#info-status span"),
-        iGenerationSpan:  document.querySelector("#info-generation span"),
-        iCellInfoSpan:    document.querySelector("#info-cell-info span"),
-        iBoardSizeSpan:   document.querySelector("#info-board-size span"),
-        iDelaySpan:       document.querySelector("#info-delay span"),
-        iBoardEngineSpan: document.querySelector("#info-board-type span"),
+        runInput:     getId("run")
+      , delayInput:   getId("delay")
+      , ngXInput:     getId("new-game-x")
+      , ngYInput:     getId("new-game-y")
+      , ngFitInput:   getId("new-game-fit")
+      , ngFilling:    getId("new-game-filling")
+      , ngStartInput: getId("new-game-start")
+      , iStatusSpan:      qs("#info-status span")
+      , iGenerationSpan:  qs("#info-generation span")
+      , iCellInfoSpan:    qs("#info-cell-info span")
+      , iBoardSizeSpan:   qs("#info-board-size span")
+      , iDelaySpan:       qs("#info-delay span")
+      , iBoardEngineSpan: qs("#info-board-type span")
 
         // cached position of the mouse for renew Cell Info at every board redraw
-        mouseAboveState: { isActive: false },
+      , mouseAboveState: { isActive: false }
 
-        get engineInputs() {
+      , get engineInputs() {
             // converts into the real array
-            var inputs = document.querySelectorAll('input[name="engine"]'),
-                inputsArray = [];
+            var inputs = document.querySelectorAll('input[name="engine"]')
+              , inputsArray = []
+              , i = 0;
 
-            for (var i = 0; i < inputs.length; i++) {
-                inputsArray.push(inputs[i]);
+            for (; i < inputs.length; i++) {
+                inputsArray.push( inputs[i] );
             }
             return inputsArray;
-        },
+        }
 
-        get engineCurrent() {
+      , get engineCurrent() {
             return this.engineInputs.filter(function(input) {
                 return input.checked;
             })[0];
-        },
+        }
 
-        get engineVal() {
+      , get engineVal() {
             return this.engineCurrent.value;
-        },
+        }
 
         // true - is running
         // false - is in pause
-        get runVal() {
+      , get runVal() {
             return this.runInput.value === "Pause";
-        },
+        }
 
         // state == true - launch
         // state == false - pause
-        set runVal(state) {
+      , set runVal(state) {
             this.runInput.value = state ? "Pause" : "Run";
-        },
+        }
 
-        get delayVal() {
+      , get delayVal() {
             var val = parseInt(this.delayInput.value, 10);
             return val >= 0 && val <= 3600000 ? val : null;
-        },
+        }
 
-        _ngSizeVal: function(input) {
+      , _ngSizeVal: function(input) {
             var val = parseInt(input.value, 10);
             return val > 0 && val < 10000 ? val : null;
-        },
+        }
 
-        get ngXVal() {
+      , get ngXVal() {
             return this._ngSizeVal(this.ngXInput);
-        },
+        }
 
-        get ngYVal() {
+      , get ngYVal() {
             return this._ngSizeVal(this.ngYInput);
-        },
+        }
 
-        enableNgSize: function() {
+      , enableNgSize: function() {
             this.ngXInput.disabled = this.ngYInput.disabled = false;
-        },
+        }
 
-        disableNgSize: function() {
+      , disableNgSize: function() {
             this.ngXInput.disabled = this.ngYInput.disabled = true;
-        },
+        }
 
-        get ngFitVal() {
+      , get ngFitVal() {
             return this.ngFitInput.checked;
-        },
+        }
 
-        get ngFillingVal() {
+      , get ngFillingVal() {
             return this.ngFilling.value;
-        },
+        }
 
         // status == true - running
         // status == false - paused
-        set iStatus(status) {
+      , set iStatus(status) {
             var elem = this.iStatusSpan;
             if (status) {
                 elem.innerHTML = "running";
@@ -733,17 +749,17 @@ window.onload = function(ev) {
                 elem.innerHTML = "paused";
                 elem.className = "red-text";
             }
-        },
+        }
 
         // 1000000 => "1 000 000"
         // for non-negative integer numbers only
-        _format: function(num) {
-            var unformatted = String(num),
-                len = unformatted.length,
-                begin = len - 1,
-                end = len,
-                position = 0,
-                result = "";
+      , _format: function(num) {
+            var unformatted = String(num)
+              , len = unformatted.length
+              , begin = len - 1
+              , end = len
+              , position = 0
+              , result = "";
 
             for (; begin >= 0; begin--, end--, position++) {
                 if (position && !(position % 3)) {
@@ -752,19 +768,19 @@ window.onload = function(ev) {
                 result = unformatted.slice(begin, end) + result;
             }
             return result;
-        },
+        }
 
-        set iGeneration(generation) {
+      , set iGeneration(generation) {
             this.iGenerationSpan.innerHTML = this._format(generation);
-        },
+        }
 
-        set iCellInfo(info) {
+      , set iCellInfo(info) {
             var baseElem = this.iCellInfoSpan;
 
             switch (info.state) {
                 case "in":
-                    var stateSpan = document.createElement("span"),
-                        stateText = info.cellState ? "alive" : "dead";
+                    var stateSpan = el("span")
+                      , stateText = info.cellState ? "alive" : "dead";
 
                     stateSpan.className = info.cellState ? "green-text" : "red-text";
                     stateSpan.innerHTML = stateText;
@@ -772,52 +788,50 @@ window.onload = function(ev) {
                     baseElem.className = "";
                     baseElem.innerHTML = "x="+info.x+", y="+info.y+", ";
                     baseElem.appendChild(stateSpan);
-
                     break;
                 case "out":
                     baseElem.className = "italic-text";
                     baseElem.innerHTML = "&lt;Hover the mouse above the board to see&gt;";
-
                     break;
                 case "border":
                     baseElem.className = "italic-text";
                     baseElem.innerHTML = "&lt;Cells' border&gt;";
-
                     break;
             }
-        },
+        }
 
-        renewCellInfo: function() {
+      , renewCellInfo: function() {
             if (this.mouseAboveState.isActive) {
-                var x = this.mouseAboveState.x,
-                    y = this.mouseAboveState.y;
+                var x = this.mouseAboveState.x
+                  , y = this.mouseAboveState.y;
 
                 this.iCellInfo = { state: "in", x: x, y: y, cellState: game.getStateForCell(x, y) };
             }
-        },
+        }
 
-        set iBoardSize(size) {
+      , set iBoardSize(size) {
             var cellC = this._format(size.x * size.y);
             this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;cells)";
-        },
+        }
 
-        set iDelay(delay) {
+      , set iDelay(delay) {
             var fps = 1000 / delay;
             this.iDelaySpan.innerHTML = delay+"&#8201;ms ("+fps.toFixed(2)+"&#8201;fps)";
-        },
+        }
 
-        set iBoardEngine(engineName) {
+      , set iBoardEngine(engineName) {
             this.iBoardEngineSpan.innerHTML = engineName;
         }
     }
 
 
-    // scrolling can be done only on full DOM therefore we do it outside the startGame()
-    var fitWindow = false,
-        game = startGame();
+    // scrolling can be done only on full DOM therefore we do it
+    // outside the startGame()
+    var fitWindow = false
+      , game = startGame();
 
     if (fitWindow) {
-        document.getElementById("board").scrollIntoView();
+        getId("board").scrollIntoView();
     }
 
     view.iDelay = game.getDelay();
@@ -870,7 +884,9 @@ window.onload = function(ev) {
         startGame();
 
         if (fitWindow) {
-            document.getElementById("board").scrollIntoView();
+            getId("board").scrollIntoView();
         }
     }, false);
 }
+
+})();
