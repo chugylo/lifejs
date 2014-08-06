@@ -1,5 +1,9 @@
+<?php
+  $lang = 'en';
+  if (isset($_GET['uk'])) $lang = 'uk';
+?>
 <!DOCTYPE html>
-<html>
+<html lang="<?= $lang; ?>">
 <head>
   <meta charset="utf-8">
   <link rel="stylesheet" type="text/css" href="life.css">
@@ -52,6 +56,11 @@
   </div>
 
   <div id="footer">&copy; 2014, chugylo <br></div>
+
+  <ul id="lang">
+    <li id="lang-en"><a href="?en">eng</a></li>
+    <li id="lang-uk"><a href="?uk">укр</a></li>
+  </ul>
 
 </body>
 </html>
