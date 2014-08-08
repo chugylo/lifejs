@@ -44,4 +44,7 @@ LifeGameLang.en = {
   , pTip: "Click left mouse to make the cell alive and click right to make it dead."
 
   , rights: "All rights reserved."
+
+  , langEnTitle: "English"
+  , langUkTitle: "Ukrainian (Українська мова)"
 }

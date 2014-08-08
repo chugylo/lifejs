@@ -516,6 +516,9 @@ I18n.fillPage = function(_) {
     getId("tip-panel").innerHTML = _.pTip;
 
     appendId("footer", _.rights);
+
+    getId("lang-en").setAttribute("title", _.langEnTitle);
+    getId("lang-uk").setAttribute("title", _.langUkTitle);
 }
 
 
