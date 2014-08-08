@@ -469,23 +469,33 @@ I18n.fillPage = function(_) {
     function prepend(elem, text) {
         elem.innerHTML = text + elem.innerHTML;
     }
+
     function append(elem, text) {
         elem.innerHTML = elem.innerHTML + text;
+    }
+
+    function prependId(idAttr, text) {
+        prepend(getId(idAttr), text);
+    }
+
+    function appendId(idAttr, text) {
+        append(getId(idAttr), text);
     }
 
     var stepDelay, newGameLabels, fillingOptions, engineLabels;
 
     document.getElementsByTagName("title")[0].innerHTML = _.title;
     document.getElementsByTagName("h1")[0].innerHTML = _.header;
+
     qs("#info-panel h4").innerHTML = _.pInfo;
-    prepend(getId("info-status"), _.piStatus);
+    prependId("info-status", _.piStatus);
     qs("#info-status span").innerHTML = _.piStatusStopped;
-    prepend(getId("info-generation"), _.piGeneration);
-    prepend(getId("info-cell-info"), _.piCellInfo);
+    prependId("info-generation", _.piGeneration);
+    prependId("info-cell-info", _.piCellInfo);
     qs("#info-cell-info span").innerHTML = _.piCellInfoEmpty;
-    prepend(getId("info-delay"), _.piDelay);
-    prepend(getId("info-board-size"), _.piBoardSize);
-    prepend(getId("info-board-type"), _.piBoardEngine);
+    prependId("info-delay", _.piDelay);
+    prependId("info-board-size", _.piBoardSize);
+    prependId("info-board-type", _.piBoardEngine);
     getId("run").value = _.pRun;
     stepDelay = qs("#flow-control-panel label");
     stepDelay.innerHTML = _.pStepDelay + stepDelay.innerHTML + _.pStepDelayMs;
@@ -504,7 +514,8 @@ I18n.fillPage = function(_) {
     append(engineLabels[0], _.pCanvasEngine);
     append(engineLabels[1], _.pDOMEngine);
     getId("tip-panel").innerHTML = _.pTip;
-    append(getId("footer"), _.rights);
+
+    appendId("footer", _.rights);
 }
 
 
