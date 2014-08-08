@@ -12,7 +12,7 @@
   padding-left: 30px;
 }
 /* all sans font declarations here */
-input, select, option, #info-panel span, #lang a {
+input, select, option, #info-panel span, #lang li, #lang a {
   font-family: "Dejavu Sans", Verdana, sans;
 }
 .red-text, .too-old {
@@ -157,11 +157,13 @@ option {
 #lang li {
   display: inline;
 }
-#lang a {
+#lang li, #lang a {
   font-size: 120%;
-  font-weight: lighter;
   letter-spacing: 2px;
   padding: 20px 12px;
+}
+#lang a {
+  font-weight: lighter;
 }
 #lang a:hover {
   background-color: #aea;

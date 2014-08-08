@@ -60,8 +60,8 @@
   <div id="footer">&copy; 2014, chugylo <br></div>
 
   <ul id="lang">
-    <li id="lang-en"><a href="?en">eng</a></li>
-    <li id="lang-uk"><a href="?uk">укр</a></li>
+    <li id="lang-en"><?php if ('en' != $lang): ?><a href="?en">eng</a><?php else: ?>eng<?php endif; ?></li>
+    <li id="lang-uk"><?php if ('uk' != $lang): ?><a href="?uk">укр</a><?php else: ?>укр<?php endif; ?></li>
   </ul>
 
 </body>
