@@ -457,6 +457,11 @@ function I18n() {
       , key = ""
       , line = "";
 
+    if (!LifeGameLang.en) {
+        createLifeElem("div", { className: "bad-lang", innerHTML: "ERROR: Can't load language! Try to reload the page." }, true);
+        throw new Error();
+    }
+
     // standard language is always English
     for (key in LifeGameLang.en) {
         line = LifeGameLang[lang][key] ? LifeGameLang[lang][key] : LifeGameLang.en[key];
