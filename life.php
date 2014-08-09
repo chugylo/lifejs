@@ -33,7 +33,8 @@
     </div>
 
     <div id="flow-control-panel" class="panel-group">
-      <input type="button" id="run" data-state="stopped" value="">
+      <input type="button" id="cycle" data-state="stopped" value="">
+      <input type="button" id="one" value="">
       <label><input type="number" id="delay" min="0" max="3600000" value="1000" maxlength="7"></label>
     </div>
 

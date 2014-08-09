@@ -95,13 +95,15 @@ select {
 option {
   padding: 0 2px 0 3px;
 }
-#run {
-  color: white;
+#cycle, #one {
   width: 120px;
+}
+#cycle {
+  color: white;
   margin-left: 15px;
   background-color: #005900;
 }
-#run[data-state="running"] {
+#cycle[data-state="running"] {
   background-color: #590000;
 }
 #flow-control-panel label {

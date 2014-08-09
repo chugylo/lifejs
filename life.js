@@ -101,6 +101,13 @@ function LifeGame(view, args) {
         return x * sizeY + y;
     }
 
+    function runOne() {
+        var diff = recalcStateToDiff();
+        applyDiffToStateTable(diff);
+        board.redrawDiff(diff);
+        renewView();
+    }
+
     this.init = function () {
         board.activate();
         board.redraw(stateTable);
@@ -108,16 +115,14 @@ function LifeGame(view, args) {
     }
 
     // must be called after .init()
+    this.runOne = runOne;
+
+    // must be called after .init()
     // newDelay is a positive number or zero
-    this.runLoop = function(newDelay) {
+    this.runCycle = function(newDelay) {
         delay = newDelay === undefined ? delay : newDelay;
         runs = true;
-        interval = setInterval(function() {
-            var diff = recalcStateToDiff();
-            applyDiffToStateTable(diff);
-            board.redrawDiff(diff);
-            renewView();
-        }, delay);
+        interval = setInterval(runOne, delay);
     }
 
     // must be called after .init()
@@ -130,7 +135,7 @@ function LifeGame(view, args) {
     this.changeDelay = function(newDelay) {
         if (runs) {
             this.stopLoop();
-            this.runLoop(newDelay);
+            this.runCycle(newDelay);
         } else {
             delay = newDelay;
         }
@@ -501,7 +506,8 @@ I18n.fillPage = function(_) {
     prependId("info-delay", _.piDelay);
     prependId("info-board-size", _.piBoardSize);
     prependId("info-board-type", _.piBoardEngine);
-    getId("run").value = _.pRun;
+    getId("cycle").value = _.pCycle;
+    getId("one").value = _.pOne;
     stepDelay = qs("#flow-control-panel label");
     stepDelay.innerHTML = _.pStepDelay + stepDelay.innerHTML + _.pStepDelayMs;
     qs("#new-game-panel h4").innerHTML = _.pNewGame;
@@ -656,7 +662,7 @@ window.onload = function(ev) {
         game.init();
         assignCbsTo(game);
         if (view.runVal || fitWindow) {
-            game.runLoop();
+            game.runCycle();
         }
 
         view.iBoardSize = game.getBoardSize();
@@ -736,7 +742,8 @@ window.onload = function(ev) {
         // Abbreviations:
         // - ng - new game
         // - i - info
-        runInput:     getId("run")
+        cycleInput:   getId("cycle")
+      , oneInput:     getId("one")
       , delayInput:   getId("delay")
       , ngXInput:     getId("new-game-x")
       , ngYInput:     getId("new-game-y")
@@ -777,15 +784,15 @@ window.onload = function(ev) {
 
         // true - is running
         // false - is in pause
-      , get runVal() {
-            return this.runInput.getAttribute("data-state") == "running";
+      , get cycleVal() {
+            return this.cycleInput.getAttribute("data-state") == "running";
         }
 
         // state == true - launch
         // state == false - pause
-      , set runVal(state) {
-            this.runInput.setAttribute("data-state", state ? "running" : "paused");
-            this.runInput.value = state ? _.pPause : _.pRun;
+      , set cycleVal(state) {
+            this.cycleInput.setAttribute("data-state", state ? "running" : "paused");
+            this.cycleInput.value = state ? _.pPause : _.pCycle;
         }
 
       , get delayVal() {
@@ -936,17 +943,26 @@ window.onload = function(ev) {
         }, false);
     });
 
-    view.runInput.addEventListener("click", function() {
-        if (!view.runVal) {
-            view.runVal = true;
+    view.cycleInput.addEventListener("click", function() {
+        if (!view.cycleVal) {
+            view.cycleVal = true;
             view.iStatus = true;
-            game.runLoop();
+            game.runCycle();
         } else {
-            view.runVal = false;
+            view.cycleVal = false;
             view.iStatus = false;
             game.stopLoop();
         }
     }, false);
+
+    view.oneInput.addEventListener("click", function() {
+        if (view.cycleVal) {
+            view.cycleVal = false;
+            view.iStatus = false;
+            game.stopLoop();
+        }
+        game.runOne();
+    });
 
     view.delayInput.addEventListener("change", function() {
         if (view.delayVal !== null) {
