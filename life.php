@@ -38,6 +38,15 @@
       <label><input type="number" id="delay" min="0" max="3600000" value="1000" maxlength="7"></label>
     </div>
 
+    <div id="pause-after-panel" class="panel-group">
+      <label id="pa-stop-label"><input type="checkbox" id="pa-switch"></label>
+      <label id="pa-generations-label"><input type="number" id="pa-generations" min="0" max="9999" value="10" maxlength="4"></label>
+      <div id="pa-from">
+        <label><input type="radio" name="pause-after" value="beginning" checked></label>
+        <label><input type="radio" name="pause-after" value="current"></label>
+      </div>
+    </div>
+
     <div id="new-game-panel" class="panel-group">
       <h4></h4>
       <div class="panel-line"><label><input type="number" id="new-game-x" min="1" max="9999" value="200" placeholder="x" maxlength="4"></label>&#8201;&#215;&#8201;<label><input type="number" id="new-game-y" min="1" max="9999" value="100" placeholder="y" maxlength="4"></label></div>

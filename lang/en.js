@@ -9,6 +9,7 @@ LifeGameLang.en = {
     // PANEL
     // p - prefix for a panel
     // pi - prefix for an info panel
+    // pPa - prefix for a `pause after` panel
   , pInfo: "Info"
   , piStatus: "Status: "
   , piStatusStopped: "stopped"
@@ -31,6 +32,12 @@ LifeGameLang.en = {
   , pCycle: "Cycle"
   , pOne: "One"
   , pPause: "Pause"
+
+  , pPaStop: " Pause after&nbsp;"
+  , pPaGenerations: " generations"
+  , pPaBeginning: " from beginning"
+  , pPaCurrent: " from current"
+
   , pNewGame: "New Game"
   , pBoardSize: "Board Size: "
   , pFit: " Fit to window size"

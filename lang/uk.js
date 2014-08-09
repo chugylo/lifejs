@@ -31,6 +31,12 @@ LifeGameLang.uk = {
   , pCycle: "Цикл"
   , pOne: "Одна"
   , pPause: "Пауза"
+
+  , pPaStop: " Пауза після&nbsp;"
+  , pPaGenerations: " поколінь"
+  , pPaBeginning: " від початку"
+  , pPaCurrent: " від поточного"
+
   , pNewGame: "Нова гра"
   , pBoardSize: "Розмір дошки: "
   , pFit: " Підлаштувати під розмір вікна"

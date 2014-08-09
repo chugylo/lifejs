@@ -12,6 +12,7 @@
 // shortcuts
 var getId = document.getElementById.bind(document)
   , qs = document.querySelector.bind(document)
+  , qsa = document.querySelectorAll.bind(document)
   , el = document.createElement.bind(document);
 
 
@@ -97,6 +98,11 @@ function LifeGame(view, args) {
         view.renewCellInfo();
     }
 
+    function renewViewAfterStop() {
+        view.iStatus = false;
+        view.cycleVal = false;
+    }
+
     function XYToPos(x, y) {
         return x * sizeY + y;
     }
@@ -121,8 +127,23 @@ function LifeGame(view, args) {
     // newDelay is a positive number or zero
     this.runCycle = function(newDelay) {
         delay = newDelay === undefined ? delay : newDelay;
+        if (typeof pauseAfter == "number" && pauseAfter < generation + 1) {
+            renewViewAfterStop();
+            return;
+        }
+        var self = this;
         runs = true;
-        interval = setInterval(runOne, delay);
+        interval = setInterval(function() {
+            if (pauseAfter === null || pauseAfter >= generation + 1) {
+                runOne();
+            } else {
+                self.stopLoop();
+                renewViewAfterStop();
+                if (pauseFromCurrent) {
+                    self.clearPauseAfter();
+                }
+            }
+        }, delay);
     }
 
     // must be called after .init()
@@ -192,6 +213,19 @@ function LifeGame(view, args) {
         return stateTable[ XYToPos(x, y) ];
     }
 
+    this.getGeneration = function() {
+        return generation;
+    }
+
+    this.pauseAfter = function(generation, fromCurrent) {
+        pauseFromCurrent = fromCurrent ? fromCurrent : false;
+        pauseAfter = generation;
+    }
+
+    this.clearPauseAfter = function() {
+        pauseAfter = null;
+    }
+
     this.markCellAlive = function(x, y) {
         var pos = XYToPos(x, y);
         stateTable[pos] = true;
@@ -210,6 +244,7 @@ function LifeGame(view, args) {
             canvasBoard.over();
         }
         domBoard.over();
+        generation = 1;
     }
 
     var sizeX = args.sizeX || 200
@@ -225,7 +260,9 @@ function LifeGame(view, args) {
       , board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard
       , interval = 0
       , runs = false
-      , generation = 0;
+      , generation = 0
+      , pauseAfter = args.pauseAfter || null
+      , pauseFromCurrent = false;
 }
 LifeGame.prototype = {
     // this function has been moved to the prototype to make it testable
@@ -476,6 +513,13 @@ function I18n() {
     return _;
 }
 I18n.fillPage = function(_) {
+    function qsAll(query) {
+        var id = query.split(" ")[0]
+          , tag = query.split(" ")[1];
+
+        return getId(id).querySelectorAll(tag);
+    }
+
     function prepend(elem, text) {
         elem.innerHTML = text + elem.innerHTML;
     }
@@ -492,7 +536,7 @@ I18n.fillPage = function(_) {
         append(getId(idAttr), text);
     }
 
-    var stepDelay, newGameLabels, fillingOptions, engineLabels;
+    var stepDelay, paFromLabels, newGameLabels, fillingOptions, engineLabels;
 
     document.getElementsByTagName("title")[0].innerHTML = _.title;
     document.getElementsByTagName("h1")[0].innerHTML = _.header;
@@ -510,18 +554,25 @@ I18n.fillPage = function(_) {
     getId("one").value = _.pOne;
     stepDelay = qs("#flow-control-panel label");
     stepDelay.innerHTML = _.pStepDelay + stepDelay.innerHTML + _.pStepDelayMs;
+
+    appendId("pa-stop-label", _.pPaStop);
+    appendId("pa-generations-label", _.pPaGenerations);
+    paFromLabels = qsAll("pa-from label");
+    append(paFromLabels[0], _.pPaBeginning);
+    append(paFromLabels[1], _.pPaCurrent);
+
     qs("#new-game-panel h4").innerHTML = _.pNewGame;
-    newGameLabels = getId("new-game-panel").querySelectorAll("label");
+    newGameLabels = qsAll("new-game-panel label");
     prepend(newGameLabels[0], _.pBoardSize);
     append(newGameLabels[2], _.pFit);
     prepend(newGameLabels[3], _.pFilling);
-    fillingOptions = getId("new-game-filling").querySelectorAll("option");
+    fillingOptions = qsAll("new-game-filling option");
     fillingOptions[0].innerHTML = _.pRandom25;
     fillingOptions[1].innerHTML = _.pAllDead;
     fillingOptions[2].innerHTML = _.pAllAlive;
     getId("new-game-start").value = _.pStart;
     qs("#board-engine-panel h4").innerHTML = _.pBoardEngine;
-    engineLabels = getId("board-engine-panel").querySelectorAll("label");
+    engineLabels = qsAll("board-engine-panel label");
     append(engineLabels[0], _.pCanvasEngine);
     append(engineLabels[1], _.pDOMEngine);
     getId("tip-panel").innerHTML = _.pTip;
@@ -584,6 +635,18 @@ window.onload = function(ev) {
         document.body.style.overflow = "";
         board.style.paddingLeft = "";
         board.style.paddingTop = "";
+    }
+
+    function getTargetGeneration() {
+        var target = view.paGenerationsVal
+          , from = view.paFromVal;
+
+        if (!view.paSwitchVal) return null;
+
+        if (from == "current") {
+            target += game ? game.getGeneration() : 1;
+        }
+        return target;
     }
 
     // start a new game in the beginning or
@@ -657,6 +720,7 @@ window.onload = function(ev) {
         options.initialFilling = view.ngFillingVal;
         options.boardType = view.engineVal;
         options.hasCanvas = hasCanvas;
+        options.pauseAfter = getTargetGeneration();
 
         game = new LifeGame(view, options);
         game.init();
@@ -742,14 +806,18 @@ window.onload = function(ev) {
         // Abbreviations:
         // - ng - new game
         // - i - info
-        cycleInput:   getId("cycle")
-      , oneInput:     getId("one")
-      , delayInput:   getId("delay")
-      , ngXInput:     getId("new-game-x")
-      , ngYInput:     getId("new-game-y")
-      , ngFitInput:   getId("new-game-fit")
-      , ngFilling:    getId("new-game-filling")
-      , ngStartInput: getId("new-game-start")
+        // - pa - pause after
+        cycleInput:         getId("cycle")
+      , oneInput:           getId("one")
+      , delayInput:         getId("delay")
+      , paSwitchInput:      getId("pa-switch")
+      , paGenerationsInput: getId("pa-generations")
+      , paFromInputs:       qsa('input[name="pause-after"]')
+      , ngXInput:           getId("new-game-x")
+      , ngYInput:           getId("new-game-y")
+      , ngFitInput:         getId("new-game-fit")
+      , ngFilling:          getId("new-game-filling")
+      , ngStartInput:       getId("new-game-start")
       , iStatusSpan:      qs("#info-status span")
       , iGenerationSpan:  qs("#info-generation span")
       , iCellInfoSpan:    qs("#info-cell-info span")
@@ -762,7 +830,7 @@ window.onload = function(ev) {
 
       , get engineInputs() {
             // converts into the real array
-            var inputs = document.querySelectorAll('input[name="engine"]')
+            var inputs = qsa('input[name="engine"]')
               , inputsArray = []
               , i = 0;
 
@@ -798,6 +866,28 @@ window.onload = function(ev) {
       , get delayVal() {
             var val = parseInt(this.delayInput.value, 10);
             return val >= 0 && val <= 3600000 ? val : null;
+        }
+
+      , get paSwitchVal() {
+            return this.paSwitchInput.checked;
+        }
+
+      , get paGenerationsVal() {
+            // it's identical to the new game's X and Y values currently
+            var val = parseInt(this.paGenerationsInput.value, 10);
+            return val > 0 && val < 10000 ? val : null;
+        }
+
+      , get paFromVal() {
+            var inputs = qsa('input[name="pause-after"]')
+              , i = 0;
+
+            while (inputs[i]) {
+                if (inputs[i].checked) {
+                    return inputs[i].value;
+                }
+                i++;
+            }
         }
 
       , _ngSizeVal: function(input) {
@@ -947,6 +1037,9 @@ window.onload = function(ev) {
         if (!view.cycleVal) {
             view.cycleVal = true;
             view.iStatus = true;
+            if (view.paSwitchVal) {
+                game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+            }
             game.runCycle();
         } else {
             view.cycleVal = false;
@@ -970,6 +1063,23 @@ window.onload = function(ev) {
             game.changeDelay(view.delayVal);
         }
     }, false);
+
+    view.paSwitchInput.addEventListener("change", function() {
+        if (view.paSwitchVal) {
+            game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+        } else {
+            game.clearPauseAfter();
+        }
+    });
+
+    view.paGenerationsInput.addEventListener("change", function() {
+        game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+    });
+
+    // this listener should work correctly while there are only 2 radio buttons
+    view.paFromInputs[0].addEventListener("change", function() {
+        game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+    });
 
     view.ngFitInput.addEventListener("change", function() {
         if (view.ngFitVal) {

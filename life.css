@@ -112,7 +112,19 @@ option {
 #delay {
   width: 80px;
 }
-#new-game-x, #new-game-y {
+#pause-after-panel {
+  margin-left: 15px;
+}
+#pause-after-panel > label {
+  float: left;
+}
+#pa-generations-label {
+  margin-right: 5px;
+}
+#pa-from label {
+  display: block;
+}
+#new-game-x, #new-game-y, #pa-generations {
   width: 55px;
 }
 #new-game-start {
