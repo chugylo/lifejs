@@ -112,7 +112,7 @@ option {
 #delay {
   width: 80px;
 }
-#pause-after-panel {
+#pause-after-panel, #change-size-panel {
   margin-left: 15px;
 }
 #pause-after-panel > label {
@@ -123,6 +123,9 @@ option {
 }
 #pa-from label {
   display: block;
+}
+#change-size {
+  width: 35px;
 }
 #new-game-x, #new-game-y, #pa-generations {
   width: 55px;

@@ -26,6 +26,7 @@ LifeGameLang.en = {
   , piFps: "fps"
   , piBoardSize: "Board Size: "
   , piCells: "cells"
+  , piCellSize: "Cell Size: "
   , piBoardEngine: "Board Engine: "
   , pStepDelay: "Step Delay: "
   , pStepDelayMs: "&#8201;ms"
@@ -37,6 +38,9 @@ LifeGameLang.en = {
   , pPaGenerations: " generations"
   , pPaBeginning: " from beginning"
   , pPaCurrent: " from current"
+
+  , pCellSize: "Cell Size: "
+  , pPx: "&#8201;px"
 
   , pNewGame: "New Game"
   , pBoardSize: "Board Size: "

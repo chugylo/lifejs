@@ -29,6 +29,7 @@
       <div id="info-cell-info"><span class="italic-text"></span></div>
       <div id="info-delay"><span></span></div>
       <div id="info-board-size"><span></span></div>
+      <div id="info-cell-size"><span></span></div>
       <div id="info-board-type"><span></span></div>
     </div>
 
@@ -45,6 +46,10 @@
         <label><input type="radio" name="pause-after" value="beginning" checked></label>
         <label><input type="radio" name="pause-after" value="current"></label>
       </div>
+    </div>
+
+    <div id="change-size-panel" class="panel-group">
+      <label><input type="number" id="change-size" min="1" max="99" value="5" maxlength="2"></label>
     </div>
 
     <div id="new-game-panel" class="panel-group">

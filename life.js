@@ -178,6 +178,9 @@ function LifeGame(view, args) {
             newBoard = domBoard;
         }
         board = board.switchTo(newBoard);
+        if (board.cellSize.x !== cellSize.x || board.cellSize.y !== cellSize.y) {
+            board.changeCellSize(cellSize);
+        }
         board.redraw(stateTable);
 
         if (memRuns) {
@@ -224,6 +227,14 @@ function LifeGame(view, args) {
 
     this.clearPauseAfter = function() {
         pauseAfter = null;
+    }
+
+    this.changeCellSize = function(newSize) {
+        cellSize = { x: newSize, y: newSize };
+        board.changeCellSize(cellSize);
+        if (board.boardType == "Canvas") {
+            board.redraw(stateTable);
+        }
     }
 
     this.markCellAlive = function(x, y) {
@@ -393,6 +404,28 @@ function DOMBoard(sizeX, sizeY, cellSize) {
         }
     })(this);
 
+    // the function takes a lot of cpu
+    this.changeCellSize = function(cellSize) {
+        var width = cellSize.x+"px"
+          , height = cellSize.y+"px"
+          , rows = document.getElementsByClassName("row")
+          , cells = document.getElementsByClassName("cell")
+          , r = rows.length
+          , c = cells.length;
+
+        this.setCellSize(cellSize);
+        this.baseEl.style.width = this.width+"px";
+        this.baseEl.style.height = this.height+"px";
+
+        for (; r--;) {
+            rows[r].style.height = height;
+        }
+        for (; c--;) {
+            cells[c].style.height = height;
+            cells[c].style.width = width;
+        }
+    }
+
     this.redraw = function(stateTable) {
         for (var i = 0; i < cellCount; i++) {
             elTable[i].style.backgroundColor = stateTable[i] ? "black" : "white";
@@ -442,17 +475,30 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
       , cellCount = sizeX * sizeY
       , cellMap = [];
 
-    (function() {
+    cx.fillStyle = "#aea";
+    cx.fillRect(0, 0, this.width, this.height);
+
+    function calcCellMap() {
+        var map = [];
         for (var pos = 0; pos < cellCount; pos++) {
-            cellMap.push({
+            map.push({
                 x: Math.floor(pos / sizeY) * (cellSizeX + 1) + 1
               , y: pos % sizeY * (cellSizeY + 1) + 1
             });
         }
-    })();
+        return map;
+    }
 
-    cx.fillStyle = "#aea";
-    cx.fillRect(0, 0, this.width, this.height);
+    cellMap = calcCellMap();
+
+    this.changeCellSize = function(cellSize) {
+        this.setCellSize(cellSize);
+        this.baseEl.width = this.width;
+        this.baseEl.height = this.height;
+        cellSizeX = this.cellSize.x;
+        cellSizeY = this.cellSize.y;
+        cellMap = calcCellMap();
+    }
 
     this.redraw = function(stateTable) {
         for (var i = 0; i < cellCount; i++) {
@@ -549,6 +595,7 @@ I18n.fillPage = function(_) {
     qs("#info-cell-info span").innerHTML = _.piCellInfoEmpty;
     prependId("info-delay", _.piDelay);
     prependId("info-board-size", _.piBoardSize);
+    prependId("info-cell-size", _.piCellSize);
     prependId("info-board-type", _.piBoardEngine);
     getId("cycle").value = _.pCycle;
     getId("one").value = _.pOne;
@@ -560,6 +607,9 @@ I18n.fillPage = function(_) {
     paFromLabels = qsAll("pa-from label");
     append(paFromLabels[0], _.pPaBeginning);
     append(paFromLabels[1], _.pPaCurrent);
+
+    prepend(qs("#change-size-panel label"), _.pCellSize);
+    append(qs("#change-size-panel label"), _.pPx);
 
     qs("#new-game-panel h4").innerHTML = _.pNewGame;
     newGameLabels = qsAll("new-game-panel label");
@@ -656,7 +706,8 @@ window.onload = function(ev) {
           , board = getId("board")
           , cellC = 0
           , gameCellC = 0
-          , hugeBoardLim = 50000;
+          , hugeBoardLim = 50000
+          , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal };
 
         if (view.ngFitVal) {
             fitWindow = true;
@@ -664,8 +715,7 @@ window.onload = function(ev) {
             // we must style the page before getting its size
             document.body.style.overflow = "hidden";
 
-            var cellSize = game ? game.getCellSize() : LifeGame.defaultCellSize
-              , clientWidth = document.documentElement.clientWidth
+            var clientWidth = document.documentElement.clientWidth
               , clientHeight = document.documentElement.clientHeight
               , paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2)
               , paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
@@ -717,10 +767,13 @@ window.onload = function(ev) {
             options.delay = view.delayVal !== null ? view.delayVal : game.getDelay();
         }
 
+        view.iCellSize = cellSize.x;
+
         options.initialFilling = view.ngFillingVal;
         options.boardType = view.engineVal;
         options.hasCanvas = hasCanvas;
         options.pauseAfter = getTargetGeneration();
+        options.cellSize = cellSize;
 
         game = new LifeGame(view, options);
         game.init();
@@ -813,6 +866,7 @@ window.onload = function(ev) {
       , paSwitchInput:      getId("pa-switch")
       , paGenerationsInput: getId("pa-generations")
       , paFromInputs:       qsa('input[name="pause-after"]')
+      , changeSizeInput:    getId("change-size")
       , ngXInput:           getId("new-game-x")
       , ngYInput:           getId("new-game-y")
       , ngFitInput:         getId("new-game-fit")
@@ -822,6 +876,7 @@ window.onload = function(ev) {
       , iGenerationSpan:  qs("#info-generation span")
       , iCellInfoSpan:    qs("#info-cell-info span")
       , iBoardSizeSpan:   qs("#info-board-size span")
+      , iCellSizeSpan:    qs("#info-cell-size span")
       , iDelaySpan:       qs("#info-delay span")
       , iBoardEngineSpan: qs("#info-board-type span")
 
@@ -888,6 +943,10 @@ window.onload = function(ev) {
                 }
                 i++;
             }
+        }
+
+      , get changeSizeVal() {
+            return parseInt(this.changeSizeInput.value, 10);
         }
 
       , _ngSizeVal: function(input) {
@@ -995,6 +1054,10 @@ window.onload = function(ev) {
             this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;"+_.piCells+")";
         }
 
+      , set iCellSize(size) {
+            this.iCellSizeSpan.innerHTML = size+"&#215;"+size+"&#8201;"+_.pPx;
+        }
+
       , set iDelay(delay) {
             var fps = 1000 / delay;
             this.iDelaySpan.innerHTML = delay+"&#8201;"+_.piMs+" ("+fps.toFixed(2)+"&#8201;"+_.piFps+")";
@@ -1079,6 +1142,11 @@ window.onload = function(ev) {
     // this listener should work correctly while there are only 2 radio buttons
     view.paFromInputs[0].addEventListener("change", function() {
         game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+    });
+
+    view.changeSizeInput.addEventListener("change", function() {
+        game.changeCellSize(view.changeSizeVal);
+        view.iCellSize = view.changeSizeVal;
     });
 
     view.ngFitInput.addEventListener("change", function() {

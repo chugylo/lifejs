@@ -25,6 +25,7 @@ LifeGameLang.uk = {
   , piFps: "кадрів/с"
   , piBoardSize: "Розмір дошки: "
   , piCells: "чарунок"
+  , piCellSize: "Розмір чарунки: "
   , piBoardEngine: "Двигун гри: "
   , pStepDelay: "Затримка кроку: "
   , pStepDelayMs: "&#8201;мс"
@@ -36,6 +37,9 @@ LifeGameLang.uk = {
   , pPaGenerations: " поколінь"
   , pPaBeginning: " від початку"
   , pPaCurrent: " від поточного"
+
+  , pCellSize: "Розмір чарунки: "
+  , pPx: "&#8201;пкс"
 
   , pNewGame: "Нова гра"
   , pBoardSize: "Розмір дошки: "
