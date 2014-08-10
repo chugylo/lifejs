@@ -38,6 +38,12 @@ h4 {
 
   /* Board */
 
+canvas {
+  image-rendering: -moz-crisp-edges;
+  image-rendering:   -o-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;  /* Safari, not tested */
+  image-rendering: crisp-edges;
+}
 canvas, #dom-board {
   border: 1px black solid;
 }
