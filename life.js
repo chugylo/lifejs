@@ -726,7 +726,7 @@ window.onload = function(ev) {
             options.sizeX = Math.floor((clientWidth - 3) / (cellSize.x + 1));
             options.sizeY = Math.floor((clientHeight - 3) / (cellSize.y + 1));
 
-            view.runVal = true;
+            view.cycleVal = true;
             view.iStatus = true;
 
             alert(_.fitAlert);
@@ -778,7 +778,7 @@ window.onload = function(ev) {
         game = new LifeGame(view, options);
         game.init();
         assignCbsTo(game);
-        if (view.runVal || fitWindow) {
+        if (view.cycleVal || fitWindow) {
             game.runCycle();
         }
 
