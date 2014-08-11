@@ -39,17 +39,19 @@
       <label><input type="number" id="delay" min="0" max="3600000" value="1000" maxlength="7"></label>
     </div>
 
-    <div id="pause-after-panel" class="panel-group">
-      <label id="pa-stop-label"><input type="checkbox" id="pa-switch"></label>
-      <label id="pa-generations-label"><input type="number" id="pa-generations" min="0" max="9999" value="10" maxlength="4"></label>
-      <div id="pa-from">
-        <label><input type="radio" name="pause-after" value="beginning" checked></label>
-        <label><input type="radio" name="pause-after" value="current"></label>
+    <div class="panel-group">
+      <div id="pause-after-panel" class="panel-line">
+        <label id="pa-stop-label"><input type="checkbox" id="pa-switch"></label>
+        <label id="pa-generations-label"><input type="number" id="pa-generations" min="0" max="9999" value="10" maxlength="4"></label>
+        <div id="pa-from">
+          <label><input type="radio" name="pause-after" value="beginning" checked></label>
+          <label><input type="radio" name="pause-after" value="current"></label>
+        </div>
       </div>
-    </div>
 
-    <div id="change-size-panel" class="panel-group">
-      <label><input type="number" id="change-size" min="1" max="99" value="5" maxlength="2"></label>
+      <div id="change-size-panel" class="panel-line">
+        <label><input type="number" id="change-size" min="1" max="99" value="5" maxlength="2"></label>
+      </div>
     </div>
 
     <div id="new-game-panel" class="panel-group">
@@ -57,7 +59,7 @@
       <div class="panel-line"><label><input type="number" id="new-game-x" min="1" max="9999" value="200" placeholder="x" maxlength="4"></label>&#8201;&#215;&#8201;<label><input type="number" id="new-game-y" min="1" max="9999" value="100" placeholder="y" maxlength="4"></label></div>
       <div class="panel-line"><label><input type="checkbox" id="new-game-fit"></label></div>
       <div class="panel-line"><label><select id="new-game-filling">
-        <option value="random-25" selected="selected"></option>
+        <option value="random-25" selected></option>
         <option value="all-dead"></option>
         <option value="all-alive"></option>
       </select></label></div>
@@ -66,7 +68,7 @@
 
     <div id="board-engine-panel" class="panel-group">
       <h4></h4>
-      <div class="panel-line"><label><input type="radio" name="engine" value="Canvas" id="engine-canvas" checked="checked"></label><label><input type="radio" name="engine" value="DOM" id="engine-dom"></label></div>
+      <div class="panel-line"><label><input type="radio" name="engine" value="Canvas" id="engine-canvas" checked></label><label><input type="radio" name="engine" value="DOM" id="engine-dom"></label></div>
     </div>
 
     <div id="tip-panel" class="panel-group"></div>

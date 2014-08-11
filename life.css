@@ -46,6 +46,7 @@ canvas {
 }
 canvas, #dom-board {
   border: 1px black solid;
+  cursor: crosshair;
 }
 canvas, #dom-board, .row {
   background-color: #aea;
@@ -87,16 +88,20 @@ input[type="button"] {
   font-weight: bold;
   border: 1px solid black;
   height: 30px;
+  cursor: pointer;
+  background: linear-gradient( rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100% );
 }
 input[type="button"]:hover {
   text-decoration: underline;
+  background: linear-gradient( rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0) 100% );
 }
 input:disabled {
   filter: alpha(opacity=40);
   opacity: .4;
+  cursor: not-allowed;
 }
 select {
-  width: 165px;
+  width: 200px;
 }
 option {
   padding: 0 2px 0 3px;
@@ -108,12 +113,28 @@ option {
   color: white;
   margin-left: 15px;
   background-color: #005900;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  background: #005900;
+  background: linear-gradient( hsl(120, 100%, 17%) 0%, hsl(120, 83%, 16%) 100% );
+}
+#cycle:hover {
+  background: linear-gradient( hsl(120, 83%, 16%) 0%, hsl(120, 100%, 17%) 100% );
 }
 #cycle[data-state="running"] {
-  background-color: #590000;
+  background: #590000;
+  background: linear-gradient( hsl(0, 100%, 17%) 0%, hsl(0, 83%, 16%) 100% );
+}
+#cycle[data-state="running"]:hover {
+  background: linear-gradient( hsl(0, 83%, 16%) 0%, hsl(0, 100%, 17%) 100% );
+}
+#one {
+  margin-left: -5px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 #flow-control-panel label {
-  margin-left: 35px;
+  margin-left: 20px;
 }
 #delay {
   width: 80px;
