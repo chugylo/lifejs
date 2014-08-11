@@ -634,6 +634,103 @@ I18n.fillPage = function(_) {
 }
 
 
+function CookieStorage(view) {
+    var saveMap = [
+            "delay"
+          , "paSwitch"
+          , "paGenerations"
+          , "paFrom"
+          , "cellSize"
+          , "ngX"
+          , "ngY"
+          , "ngFit"
+          , "ngFilling"
+          , "engine"
+        ]
+      , loadMap = [
+            function(v) {
+                view.delayVal = v;
+                view.iDelay = v;
+            }
+          , function(v) {
+                view.paSwitchVal = !!+v;
+            }
+          , function(v) {
+                view.paGenerationsVal = v;
+            }
+          , function(v) {
+                view.paFromVal = v;
+            }
+          , function(v) {
+                view.changeSizeVal = v;
+                view.iCellSize = v;
+            }
+          , function(v) {
+                view.ngXVal = v;
+            }
+          , function(v) {
+                view.ngYVal = v;
+            }
+          , function(v) {
+                view.ngFitVal = !!+v;
+            }
+          , function(v) {
+                view.ngFillingVal = v;
+            }
+          , function(v) {
+                view.engineVal = v;
+                view.iBoardEngine = v;
+            }
+        ];    
+
+    this.save = function(key, value) {
+        var myCookie = ""
+          , myCookieArr = []
+          , parts = saveMap.length;
+
+        document.cookie.split(";").forEach(function(cookie) {
+            var cookieParts = cookie.split("=");
+            if (cookieParts[0] == "lifegame") {
+                myCookie = cookieParts[1].split("|").map(function(current, index) {
+                    return saveMap[index] == key ? value : current;
+                }).join("|");
+            }
+        });
+        if (!myCookie) {  // create new cookie
+            for (; parts--;) {
+                myCookieArr.push( saveMap[parts] == key ? value : "" );
+            }
+            myCookie = myCookieArr.join("|");
+        }
+        myCookie = "lifegame="+myCookie+";expires="+new Date(0x7fffffff * 1000).toUTCString();
+        document.cookie = myCookie;
+    }
+
+    this.load = function() {
+        var settingsArr = []
+          , cookieParts = []
+          , i = 0;
+
+        document.cookie.split(";").forEach(function(cookie) {
+            cookieParts = cookie.split("=");
+            if (cookieParts[0] == "lifegame") {
+                settingsArr = cookieParts[1].split("|");
+            }
+        });
+        if (settingsArr.length) {
+            for (i = settingsArr.length; i--;) {
+                if (settingsArr[i].length) {
+                    loadMap[i]( settingsArr[i] );
+                }
+            }
+            if (settingsArr[5].length && settingsArr[6].length) {
+                view.iBoardSize = { x: settingsArr[5], y: settingsArr[6] };
+            }
+        }
+    }
+}
+
+
 window.onload = function(ev) {
     // do nothing when tests're running
     if (!getId("board") || !getId("panel")) return;
@@ -905,6 +1002,10 @@ window.onload = function(ev) {
             return this.engineCurrent.value;
         }
 
+      , set engineVal(value) {
+            qs('[name="engine"][value="'+value+'"]').checked = true;
+        }
+
         // true - is running
         // false - is in pause
       , get cycleVal() {
@@ -923,14 +1024,26 @@ window.onload = function(ev) {
             return val >= 0 && val <= 3600000 ? val : null;
         }
 
+      , set delayVal(value) {
+            this.delayInput.value = value;
+        }
+
       , get paSwitchVal() {
             return this.paSwitchInput.checked;
+        }
+
+      , set paSwitchVal(value) {
+            this.paSwitchInput.checked = value;
         }
 
       , get paGenerationsVal() {
             // it's identical to the new game's X and Y values currently
             var val = parseInt(this.paGenerationsInput.value, 10);
             return val > 0 && val < 10000 ? val : null;
+        }
+
+      , set paGenerationsVal(value) {
+            this.paGenerationsInput.value = value;
         }
 
       , get paFromVal() {
@@ -945,8 +1058,16 @@ window.onload = function(ev) {
             }
         }
 
+      , set paFromVal(value) {
+            qs('[name="pause-after"][value="'+value+'"]').checked = true;
+        }
+
       , get changeSizeVal() {
             return parseInt(this.changeSizeInput.value, 10);
+        }
+
+      , set changeSizeVal(value) {
+            this.changeSizeInput.value = value;
         }
 
       , _ngSizeVal: function(input) {
@@ -958,8 +1079,16 @@ window.onload = function(ev) {
             return this._ngSizeVal(this.ngXInput);
         }
 
+      , set ngXVal(value) {
+            this.ngXInput.value = value;
+        }
+
       , get ngYVal() {
             return this._ngSizeVal(this.ngYInput);
+        }
+
+      , set ngYVal(value) {
+            this.ngYInput.value = value;
         }
 
       , enableNgSize: function() {
@@ -974,8 +1103,16 @@ window.onload = function(ev) {
             return this.ngFitInput.checked;
         }
 
+      , set ngFitVal(value) {
+            this.ngFitInput.checked = value;
+        }
+
       , get ngFillingVal() {
             return this.ngFilling.value;
+        }
+
+      , set ngFillingVal(value) {
+            qs('#new-game-filling option[value="'+value+'"]').selected = true;
         }
 
         // status == true - running
@@ -1069,6 +1206,9 @@ window.onload = function(ev) {
     }
 
 
+    var cookie = new CookieStorage(view);
+    cookie.load();
+
     // scrolling can be done only on full DOM therefore we do it
     // outside the startGame()
     var fitWindow = false
@@ -1090,6 +1230,7 @@ window.onload = function(ev) {
     view.engineInputs.forEach(function(input) {
         input.addEventListener("change", function() {
             if (input == view.engineCurrent) {
+                cookie.save("engine", view.engineVal);
                 game.setBoard(view.engineVal);
                 view.iBoardEngine = game.getBoardEngine();
             }
@@ -1122,12 +1263,14 @@ window.onload = function(ev) {
 
     view.delayInput.addEventListener("change", function() {
         if (view.delayVal !== null) {
+            cookie.save("delay", view.delayVal);
             view.iDelay = view.delayVal;
             game.changeDelay(view.delayVal);
         }
     }, false);
 
     view.paSwitchInput.addEventListener("change", function() {
+        cookie.save("paSwitch", +view.paSwitchVal);
         if (view.paSwitchVal) {
             game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
         } else {
@@ -1136,26 +1279,45 @@ window.onload = function(ev) {
     });
 
     view.paGenerationsInput.addEventListener("change", function() {
+        cookie.save("paGenerations", view.paGenerationsVal);
         game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
     });
 
     // this listener should work correctly while there are only 2 radio buttons
     view.paFromInputs[0].addEventListener("change", function() {
+        cookie.save("paFrom", view.paFromVal);
         game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+    });
+    view.paFromInputs[1].addEventListener("change", function() {
+        cookie.save("paFrom", view.paFromVal);
     });
 
     view.changeSizeInput.addEventListener("change", function() {
+        cookie.save("cellSize", view.changeSizeVal);
         game.changeCellSize(view.changeSizeVal);
         view.iCellSize = view.changeSizeVal;
     });
 
+    view.ngXInput.addEventListener("change", function() {
+        cookie.save("ngX", view.ngXVal);
+    });
+
+    view.ngYInput.addEventListener("change", function() {
+        cookie.save("ngY", view.ngYVal);
+    });
+
     view.ngFitInput.addEventListener("change", function() {
+        cookie.save("ngFit", +view.ngFitVal);
         if (view.ngFitVal) {
             view.disableNgSize();
         } else {
             view.enableNgSize();
         }
     }, false);
+
+    view.ngFilling.addEventListener("change", function() {
+        cookie.save("ngFilling", view.ngFillingVal);
+    });
 
     view.ngStartInput.addEventListener("click", function() {
         game.over();
