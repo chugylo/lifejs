@@ -872,6 +872,8 @@ window.onload = function(ev) {
             if (!game) {
                 if (!cookie.isFromStorage("ngX") || !cookie.isFromStorage("ngY")) {
                     optimalBoardSize = calcOptimalBoardSize();
+                    cookie.save("ngX", optimalBoardSize.x);
+                    cookie.save("ngY", optimalBoardSize.y);
                 }
                 if (!cookie.isFromStorage("ngX")) {
                     options.sizeX = view.ngXVal = optimalBoardSize.x;
