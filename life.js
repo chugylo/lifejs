@@ -689,7 +689,7 @@ function CookieStorage(view) {
           , parts = saveMap.length;
 
         document.cookie.split(";").forEach(function(cookie) {
-            var cookieParts = cookie.split("=");
+            var cookieParts = cookie.replace(/^\s+|\s+$/g, "").split("=");
             if (cookieParts[0] == "lifegame") {
                 myCookie = cookieParts[1].split("|").map(function(current, index) {
                     return saveMap[index] == key ? value : current;
@@ -712,7 +712,7 @@ function CookieStorage(view) {
           , i = 0;
 
         document.cookie.split(";").forEach(function(cookie) {
-            cookieParts = cookie.split("=");
+            cookieParts = cookie.replace(/^\s+|\s+$/g, "").split("=");
             if (cookieParts[0] == "lifegame") {
                 settingsArr = cookieParts[1].split("|");
             }
