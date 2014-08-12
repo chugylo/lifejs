@@ -19,6 +19,8 @@
 
   <h1></h1>
 
+  <noscript>Error! The game needs Javascript.</noscript>
+
   <div id="board"></div>
 
   <div id="panel">

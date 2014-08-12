@@ -15,7 +15,7 @@
 input, select, option, #info-panel span, #lang li, #lang a {
   font-family: "Dejavu Sans", Verdana, sans;
 }
-.red-text, .too-old, .bad-lang {
+.red-text, .too-old, .bad-lang, noscript {
   color: #590000;
 }
 .green-text {
@@ -64,7 +64,7 @@ canvas, #dom-board, .row {
 .cell:last-child {
   margin-right: 1px;
 }
-.too-old {
+.too-old, noscript {
   font-size: 140%;
 }
 
