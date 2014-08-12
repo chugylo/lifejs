@@ -15,6 +15,9 @@ var getId = document.getElementById.bind(document)
   , qsa = document.querySelectorAll.bind(document)
   , el = document.createElement.bind(document);
 
+// constants
+var GOLDEN_RATIO_INVERSED = 0.6180341996797237;
+
 
 function LifeGame(view, args) {
 
@@ -42,7 +45,7 @@ function LifeGame(view, args) {
                 });
             default:
                 return fill(function() {
-                    return Math.random() >= 0.75 ? true : false;
+                    return Math.random() >= GOLDEN_RATIO_INVERSED ? true : false;
                 });
         }
     }
@@ -258,12 +261,13 @@ function LifeGame(view, args) {
         generation = 1;
     }
 
-    var sizeX = args.sizeX || 200
-      , sizeY = args.sizeY || 100
+    // 100:62 - golden ratio
+    var sizeX = args.sizeX || 100
+      , sizeY = args.sizeY || 62
       , cellSize = args.cellSize || LifeGame.defaultCellSize
       , delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000
       , hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas
-      , initialFilling = args.initialFilling || "random-25"
+      , initialFilling = args.initialFilling || "golden"
       , stateTable = initStateTable()
       , cellsNeighbors = this._getCellsNeighbors(sizeX, sizeY)
       , canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null
@@ -303,7 +307,7 @@ LifeGame.prototype = {
         return cellsNeighbors;
     }    
 }
-LifeGame.defaultCellSize = { x: 5, y: 5 };
+LifeGame.defaultCellSize = { x: 7, y: 7 };
 
 
 function createLifeElem(tag, attrs, insertNow) {
@@ -617,7 +621,7 @@ I18n.fillPage = function(_) {
     append(newGameLabels[2], _.pFit);
     prepend(newGameLabels[3], _.pFilling);
     fillingOptions = qsAll("new-game-filling option");
-    fillingOptions[0].innerHTML = _.pRandom25;
+    fillingOptions[0].innerHTML = _.pGolden;
     fillingOptions[1].innerHTML = _.pAllDead;
     fillingOptions[2].innerHTML = _.pAllAlive;
     getId("new-game-start").value = _.pStart;
@@ -721,12 +725,23 @@ function CookieStorage(view) {
             for (i = settingsArr.length; i--;) {
                 if (settingsArr[i].length) {
                     loadMap[i]( settingsArr[i] );
+                    this.setFromStorage( saveMap[i] );
                 }
             }
             if (settingsArr[5].length && settingsArr[6].length) {
                 view.iBoardSize = { x: settingsArr[5], y: settingsArr[6] };
             }
         }
+    }
+
+    this._fromStorage = [];
+
+    this.isFromStorage = function(setting) {
+        return this._fromStorage.indexOf(setting) >= 0 ? true : false;
+    }
+
+    this.setFromStorage = function(setting) {
+        this._fromStorage.push(setting);
     }
 }
 
@@ -742,6 +757,7 @@ window.onload = function(ev) {
         typeof Array.prototype.map != "function"
         || typeof Array.prototype.filter != "function"
         || typeof Array.prototype.forEach != "function"
+        || typeof Array.prototype.indexOf != "function"
         || typeof Event.prototype.preventDefault != "function"
         || typeof document.querySelector != "function"
         || typeof document.querySelectorAll != "function"
@@ -796,6 +812,26 @@ window.onload = function(ev) {
         return target;
     }
 
+    function calcOptimalBoardSize() {
+        var
+        // cell sizes + cell border sizes (1px every internal + 2px external) + board border sizes (2px)
+        challengerWidth = view.changeSizeVal + 2 + 2
+      , rect = document.documentElement.getBoundingClientRect()
+      , left = rect.left
+      , right = rect.right
+      , targetWidth = (Math.abs(left)+right) * GOLDEN_RATIO_INVERSED
+      , oneCellWidth = view.changeSizeVal + 1
+      , x = 1, y = 0;
+
+        while (challengerWidth - oneCellWidth / 2 < targetWidth) {
+            challengerWidth += oneCellWidth;
+            x++;
+        }
+        y = Math.round(x * GOLDEN_RATIO_INVERSED);
+
+        return { x: x, y: y };
+    }
+
     // start a new game in the beginning or
     // at the clicking `Start new game` button
     function startGame() {
@@ -804,7 +840,8 @@ window.onload = function(ev) {
           , cellC = 0
           , gameCellC = 0
           , hugeBoardLim = 50000
-          , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal };
+          , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal }
+          , optimalBoardSize = {};
 
         if (view.ngFitVal) {
             fitWindow = true;
@@ -833,8 +870,19 @@ window.onload = function(ev) {
             unFitWindow();
 
             if (!game) {
-                options.sizeX = view.ngXVal;
-                options.sizeY = view.ngYVal;
+                if (!cookie.isFromStorage("ngX") || !cookie.isFromStorage("ngY")) {
+                    optimalBoardSize = calcOptimalBoardSize();
+                }
+                if (!cookie.isFromStorage("ngX")) {
+                    options.sizeX = view.ngXVal = optimalBoardSize.x;
+                } else {
+                    options.sizeX = view.ngXVal;
+                }
+                if (!cookie.isFromStorage("ngY")) {
+                    options.sizeY = view.ngYVal = optimalBoardSize.y;
+                } else {
+                    options.sizeY = view.ngYVal;
+                }
             } else {
                 options.sizeX = view.ngXVal || game.getBoardSize().x;
                 options.sizeY = view.ngYVal || game.getBoardSize().y;

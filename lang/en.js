@@ -46,7 +46,7 @@ LifeGameLang.en = {
   , pBoardSize: "Board Size: "
   , pFit: " Fit to window size"
   , pFilling: "Initial Filling: "
-  , pRandom25: "Random 25% alive"
+  , pGolden: "Random, using golden ratio"
   , pAllDead: "All dead"
   , pAllAlive: "All alive"
   , pStart: "Start new game"

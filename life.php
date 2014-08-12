@@ -52,16 +52,16 @@
       </div>
 
       <div id="change-size-panel" class="panel-line">
-        <label><input type="number" id="change-size" min="1" max="99" value="5" maxlength="2"></label>
+        <label><input type="number" id="change-size" min="1" max="99" value="7" maxlength="2"></label>
       </div>
     </div>
 
     <div id="new-game-panel" class="panel-group">
       <h4></h4>
-      <div class="panel-line"><label><input type="number" id="new-game-x" min="1" max="9999" value="200" placeholder="x" maxlength="4"></label>&#8201;&#215;&#8201;<label><input type="number" id="new-game-y" min="1" max="9999" value="100" placeholder="y" maxlength="4"></label></div>
+      <div class="panel-line"><label><input type="number" id="new-game-x" min="1" max="9999" value="100" placeholder="x" maxlength="4"></label>&#8201;&#215;&#8201;<label><input type="number" id="new-game-y" min="1" max="9999" value="62" placeholder="y" maxlength="4"></label></div>
       <div class="panel-line"><label><input type="checkbox" id="new-game-fit"></label></div>
       <div class="panel-line"><label><select id="new-game-filling">
-        <option value="random-25" selected></option>
+        <option value="golden" selected></option>
         <option value="all-dead"></option>
         <option value="all-alive"></option>
       </select></label></div>
