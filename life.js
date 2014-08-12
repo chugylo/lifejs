@@ -702,7 +702,7 @@ function CookieStorage(view) {
         });
         if (!myCookie) {  // create new cookie
             for (; parts--;) {
-                myCookieArr.push( saveMap[parts] == key ? value : "" );
+                myCookieArr[parts] = saveMap[parts] == key ? value : "";
             }
             myCookie = myCookieArr.join("|");
         }
