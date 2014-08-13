@@ -629,6 +629,8 @@ I18n.fillPage = function(_) {
     engineLabels = qsAll("board-engine-panel label");
     append(engineLabels[0], _.pCanvasEngine);
     append(engineLabels[1], _.pDOMEngine);
+    engineLabels[0].setAttribute("title", _.pCanvasEngineTitle);
+    engineLabels[1].setAttribute("title", _.pDOMEngineTitle);
     getId("tip-panel").innerHTML = _.pTip;
 
     appendId("footer", _.rights);

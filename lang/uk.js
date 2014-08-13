@@ -52,6 +52,8 @@ LifeGameLang.uk = {
   , pBoardEngine: "Двигун гри"
   , pCanvasEngine: " Canvas"
   , pDOMEngine: " DOM"
+  , pCanvasEngineTitle: "Швидкий, рекомендований"
+  , pDOMEngineTitle: "Повільний, не рекомендований"
   , pTip: "Клікайте лівою кнопкою миші, щоб оживити клітину або правою, щоб умертвити."
 
   , rights: "Всі права збережено."

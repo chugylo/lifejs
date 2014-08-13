@@ -53,6 +53,8 @@ LifeGameLang.en = {
   , pBoardEngine: "Board Engine"
   , pCanvasEngine: " Canvas"
   , pDOMEngine: " DOM"
+  , pCanvasEngineTitle: "Quick, recommended"
+  , pDOMEngineTitle: "Slow, not recommended"
   , pTip: "Click left mouse to make the cell live and click right to make it dead."
 
   , rights: "All rights reserved."
