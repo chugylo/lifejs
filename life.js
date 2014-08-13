@@ -632,6 +632,7 @@ I18n.fillPage = function(_) {
     engineLabels[0].setAttribute("title", _.pCanvasEngineTitle);
     engineLabels[1].setAttribute("title", _.pDOMEngineTitle);
     getId("tip-panel").innerHTML = _.pTip;
+    getId("whatsit-panel").innerHTML = _.pWhatsit;
 
     appendId("footer", _.rights);
 

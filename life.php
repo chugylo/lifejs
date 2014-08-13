@@ -74,6 +74,8 @@
     </div>
 
     <div id="tip-panel" class="panel-group"></div>
+
+    <div id="whatsit-panel"></div>
   </div>
 
   <div id="footer">&copy; 2014, chugylo <br></div>

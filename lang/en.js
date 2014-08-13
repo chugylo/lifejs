@@ -56,6 +56,7 @@ LifeGameLang.en = {
   , pCanvasEngineTitle: "Quick, recommended"
   , pDOMEngineTitle: "Slow, not recommended"
   , pTip: "Click left mouse to make the cell live and click right to make it dead."
+  , pWhatsit: "The Game of Life is a cellular automaton, a zero-player game. The universe is a space divided into cells. Every generation is calculated out of the previous one by simple rules. More <a href=\"http://en.wikipedia.org/wiki/Conway%27s_Game_of_Life\" target=\"_blank\">on Wikipedia</a>."
 
   , rights: "All rights reserved."
 
