@@ -2,7 +2,7 @@
  * Copyright 2014 chugylo
  * All rights reserved.
  * 
- * life.js - The clone of the Life Game.
+ * life.js - The clone of Conway's Game of Life.
  * Alpha version.
  */
 
@@ -35,7 +35,7 @@ function LifeGame(view, args) {
     // the state table is a 1-dimensional array for make it awesome fast
     function initStateTable() {
         switch (initialFilling) {
-            case "all-alive":
+            case "all-live":
                 return fill(function() {
                     return true;
                 });
@@ -52,7 +52,7 @@ function LifeGame(view, args) {
 
     // the function takes a lot of cpu
     function recalcStateToDiff() {
-        var stateDiff = { newAlive: [], newDead: [] }
+        var stateDiff = { newLive: [], newDead: [] }
           , activeNeighborsCount = 0
           , pos = 0, i = 0
           , cellCount = cellsNeighbors.length
@@ -67,11 +67,11 @@ function LifeGame(view, args) {
 
             if (activeNeighborsCount != 2) {
                 if (activeNeighborsCount == 3) {
-                    if (!stateTable[pos]) {  // dead cell will return alive
-                        stateDiff.newAlive.push(pos);
+                    if (!stateTable[pos]) {  // dead cell will return live
+                        stateDiff.newLive.push(pos);
                     }
                 } else {
-                    if (stateTable[pos]) {  // alive cell will return dead
+                    if (stateTable[pos]) {  // live cell will return dead
                         stateDiff.newDead.push(pos);
                     }
                 }
@@ -82,13 +82,13 @@ function LifeGame(view, args) {
 
     function applyDiffToStateTable(diff) {
         var i = 0
-          , newAlive = diff.newAlive
+          , newLive = diff.newLive
           , newDead = diff.newDead
-          , newAliveLen = newAlive.length
+          , newLiveLen = newLive.length
           , newDeadLen = newDead.length;
 
-        for (; i < newAliveLen; i++) {
-            stateTable[ newAlive[i] ] = true;
+        for (; i < newLiveLen; i++) {
+            stateTable[ newLive[i] ] = true;
         }
         for (i = 0; i < newDeadLen; i++) {
             stateTable[ newDead[i] ] = false;
@@ -127,9 +127,9 @@ function LifeGame(view, args) {
     this.runOne = runOne;
 
     // must be called after .init()
-    // newDelay is a positive number or zero
-    this.runCycle = function(newDelay) {
-        delay = newDelay === undefined ? delay : newDelay;
+    // newPeriod is a positive number or zero
+    this.runCycle = function(newPeriod) {
+        period = newPeriod === undefined ? period : newPeriod;
         if (typeof pauseAfter == "number" && pauseAfter < generation + 1) {
             renewViewAfterStop();
             return;
@@ -146,7 +146,7 @@ function LifeGame(view, args) {
                     self.clearPauseAfter();
                 }
             }
-        }, delay);
+        }, period);
     }
 
     // must be called after .init()
@@ -155,13 +155,13 @@ function LifeGame(view, args) {
         clearInterval(interval);
     }
 
-    // newDelay is a positive number or zero
-    this.changeDelay = function(newDelay) {
+    // newPeriod is a positive number or zero
+    this.changePeriod = function(newPeriod) {
         if (runs) {
             this.stopLoop();
-            this.runCycle(newDelay);
+            this.runCycle(newPeriod);
         } else {
-            delay = newDelay;
+            period = newPeriod;
         }
     }
 
@@ -187,7 +187,7 @@ function LifeGame(view, args) {
         board.redraw(stateTable);
 
         if (memRuns) {
-            this.runLoop(delay);
+            this.runLoop(period);
         }
     }
 
@@ -207,8 +207,8 @@ function LifeGame(view, args) {
         return { x: sizeX, y: sizeY };
     }
 
-    this.getDelay = function() {
-        return delay;
+    this.getPeriod = function() {
+        return period;
     }
 
     this.getBoardEngine = function() {
@@ -240,10 +240,10 @@ function LifeGame(view, args) {
         }
     }
 
-    this.markCellAlive = function(x, y) {
+    this.markCellLive = function(x, y) {
         var pos = XYToPos(x, y);
         stateTable[pos] = true;
-        board.redrawCellAsAlive(pos);
+        board.redrawCellAsLive(pos);
     }
 
     this.markCellDead = function(x, y) {
@@ -265,7 +265,7 @@ function LifeGame(view, args) {
     var sizeX = args.sizeX || 100
       , sizeY = args.sizeY || 62
       , cellSize = args.cellSize || LifeGame.defaultCellSize
-      , delay = typeof args.delay == "number" && args.delay >= 0 ? args.delay : 1000
+      , period = typeof args.period == "number" && args.period >= 0 ? args.period : 1000
       , hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas
       , initialFilling = args.initialFilling || "golden"
       , stateTable = initStateTable()
@@ -439,20 +439,20 @@ function DOMBoard(sizeX, sizeY, cellSize) {
     // the function takes a lot of cpu
     this.redrawDiff = function(diff) {
         var i = 0
-          , newAlive = diff.newAlive
+          , newLive = diff.newLive
           , newDead = diff.newDead
-          , newAliveLen = newAlive.length
+          , newLiveLen = newLive.length
           , newDeadLen = newDead.length;
 
-        for (; i < newAliveLen; i++) {
-            elTable[ newAlive[i] ].style.backgroundColor = "black";
+        for (; i < newLiveLen; i++) {
+            elTable[ newLive[i] ].style.backgroundColor = "black";
         }
         for (i = 0; i < newDeadLen; i++) {
             elTable[ newDead[i] ].style.backgroundColor = "white";
         }
     }
 
-    this.redrawCellAsAlive = function(pos) {
+    this.redrawCellAsLive = function(pos) {
         elTable[pos].style.backgroundColor = "black";
     }
 
@@ -514,14 +514,14 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
     // the function takes a lot of cpu
     this.redrawDiff = function(diff) {
         var i = 0
-          , newAlive = diff.newAlive
+          , newLive = diff.newLive
           , newDead = diff.newDead
-          , newAliveLen = newAlive.length
+          , newLiveLen = newLive.length
           , newDeadLen = newDead.length;
 
         cx.fillStyle = "black";
-        for (; i < newAliveLen; i++) {
-            cx.fillRect(cellMap[ newAlive[i] ].x, cellMap[ newAlive[i] ].y, cellSizeX, cellSizeY);
+        for (; i < newLiveLen; i++) {
+            cx.fillRect(cellMap[ newLive[i] ].x, cellMap[ newLive[i] ].y, cellSizeX, cellSizeY);
         }
 
         cx.fillStyle = "white";
@@ -530,7 +530,7 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
         }
     }
 
-    this.redrawCellAsAlive = function(pos) {
+    this.redrawCellAsLive = function(pos) {
         cx.fillStyle = "black";
         cx.fillRect(cellMap[pos].x, cellMap[pos].y, cellSizeX, cellSizeY);
     }
@@ -586,7 +586,7 @@ I18n.fillPage = function(_) {
         append(getId(idAttr), text);
     }
 
-    var stepDelay, paFromLabels, newGameLabels, fillingOptions, engineLabels;
+    var step, paFromLabels, newGameLabels, fillingOptions, engineLabels;
 
     document.getElementsByTagName("title")[0].innerHTML = _.title;
     document.getElementsByTagName("h1")[0].innerHTML = _.header;
@@ -597,14 +597,14 @@ I18n.fillPage = function(_) {
     prependId("info-generation", _.piGeneration);
     prependId("info-cell-info", _.piCellInfo);
     qs("#info-cell-info span").innerHTML = _.piCellInfoEmpty;
-    prependId("info-delay", _.piDelay);
+    prependId("info-period", _.piPeriod);
     prependId("info-board-size", _.piBoardSize);
     prependId("info-cell-size", _.piCellSize);
     prependId("info-board-type", _.piBoardEngine);
     getId("cycle").value = _.pCycle;
     getId("one").value = _.pOne;
-    stepDelay = qs("#flow-control-panel label");
-    stepDelay.innerHTML = _.pStepDelay + stepDelay.innerHTML + _.pStepDelayMs;
+    step = qs("#flow-control-panel label");
+    step.innerHTML = _.pStep + step.innerHTML + _.pStepMs;
 
     appendId("pa-stop-label", _.pPaStop);
     appendId("pa-generations-label", _.pPaGenerations);
@@ -623,7 +623,7 @@ I18n.fillPage = function(_) {
     fillingOptions = qsAll("new-game-filling option");
     fillingOptions[0].innerHTML = _.pGolden;
     fillingOptions[1].innerHTML = _.pAllDead;
-    fillingOptions[2].innerHTML = _.pAllAlive;
+    fillingOptions[2].innerHTML = _.pAllLive;
     getId("new-game-start").value = _.pStart;
     qs("#board-engine-panel h4").innerHTML = _.pBoardEngine;
     engineLabels = qsAll("board-engine-panel label");
@@ -640,7 +640,7 @@ I18n.fillPage = function(_) {
 
 function CookieStorage(view) {
     var saveMap = [
-            "delay"
+            "period"
           , "paSwitch"
           , "paGenerations"
           , "paFrom"
@@ -653,8 +653,8 @@ function CookieStorage(view) {
         ]
       , loadMap = [
             function(v) {
-                view.delayVal = v;
-                view.iDelay = v;
+                view.periodVal = v;
+                view.iPeriod = v;
             }
           , function(v) {
                 view.paSwitchVal = !!+v;
@@ -909,9 +909,9 @@ window.onload = function(ev) {
         }
 
         if (!game) {
-            options.delay = view.delayVal;
+            options.period = view.periodVal;
         } else {
-            options.delay = view.delayVal !== null ? view.delayVal : game.getDelay();
+            options.period = view.periodVal !== null ? view.periodVal : game.getPeriod();
         }
 
         view.iCellSize = cellSize.x;
@@ -964,7 +964,7 @@ window.onload = function(ev) {
         game.getBoardElems().forEach(function(elem) {
             elem.onclick = function(ev) {
                 onmouse(elem, ev, function(x, y) {
-                    game.markCellAlive(x, y);
+                    game.markCellLive(x, y);
                     view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
                 });
             }
@@ -1009,7 +1009,7 @@ window.onload = function(ev) {
         // - pa - pause after
         cycleInput:         getId("cycle")
       , oneInput:           getId("one")
-      , delayInput:         getId("delay")
+      , periodInput:        getId("period")
       , paSwitchInput:      getId("pa-switch")
       , paGenerationsInput: getId("pa-generations")
       , paFromInputs:       qsa('input[name="pause-after"]')
@@ -1024,7 +1024,7 @@ window.onload = function(ev) {
       , iCellInfoSpan:    qs("#info-cell-info span")
       , iBoardSizeSpan:   qs("#info-board-size span")
       , iCellSizeSpan:    qs("#info-cell-size span")
-      , iDelaySpan:       qs("#info-delay span")
+      , iPeriodSpan:       qs("#info-period span")
       , iBoardEngineSpan: qs("#info-board-type span")
 
         // cached position of the mouse for renew Cell Info at every board redraw
@@ -1069,13 +1069,13 @@ window.onload = function(ev) {
             this.cycleInput.value = state ? _.pPause : _.pCycle;
         }
 
-      , get delayVal() {
-            var val = parseInt(this.delayInput.value, 10);
+      , get periodVal() {
+            var val = parseInt(this.periodInput.value, 10);
             return val >= 0 && val <= 3600000 ? val : null;
         }
 
-      , set delayVal(value) {
-            this.delayInput.value = value;
+      , set periodVal(value) {
+            this.periodInput.value = value;
         }
 
       , get paSwitchVal() {
@@ -1207,7 +1207,7 @@ window.onload = function(ev) {
             switch (info.state) {
                 case "in":
                     var stateSpan = el("span")
-                      , stateText = info.cellState ? _.piCellInfoAlive : _.piCellInfoDead;
+                      , stateText = info.cellState ? _.piCellInfoLive : _.piCellInfoDead;
 
                     stateSpan.className = info.cellState ? "green-text" : "red-text";
                     stateSpan.innerHTML = stateText;
@@ -1245,9 +1245,9 @@ window.onload = function(ev) {
             this.iCellSizeSpan.innerHTML = size+"&#215;"+size+"&#8201;"+_.pPx;
         }
 
-      , set iDelay(delay) {
-            var fps = 1000 / delay;
-            this.iDelaySpan.innerHTML = delay+"&#8201;"+_.piMs+" ("+fps.toFixed(2)+"&#8201;"+_.piFps+")";
+      , set iPeriod(period) {
+            var gps = 1000 / period;
+            this.iPeriodSpan.innerHTML = period+"&#8201;"+_.piMs+" ("+gps.toFixed(2)+"&#8201;"+_.piGps+")";
         }
 
       , set iBoardEngine(engineName) {
@@ -1268,7 +1268,7 @@ window.onload = function(ev) {
         getId("board").scrollIntoView();
     }
 
-    view.iDelay = game.getDelay();
+    view.iPeriod = game.getPeriod();
     view.iBoardEngine = game.getBoardEngine();
 
     document.body.addEventListener("keyup", function(ev) {
@@ -1311,11 +1311,11 @@ window.onload = function(ev) {
         game.runOne();
     });
 
-    view.delayInput.addEventListener("change", function() {
-        if (view.delayVal !== null) {
-            cookie.save("delay", view.delayVal);
-            view.iDelay = view.delayVal;
-            game.changeDelay(view.delayVal);
+    view.periodInput.addEventListener("change", function() {
+        if (view.periodVal !== null) {
+            cookie.save("period", view.periodVal);
+            view.iPeriod = view.periodVal;
+            game.changePeriod(view.periodVal);
         }
     }, false);
 

@@ -4,7 +4,7 @@ LifeGameLang.uk = {
 
   , fitAlert: "Смуги прокрутки будуть приховані і гра почнеться автоматично. Натисніть клавішу ESC, щоб показати смуги прокрутки знову."
   , hugeConfirm1: "Ви намагаєтесь створити величезну дошку ("
-  , hugeConfirm2: " чарунок). Підтвердити?"
+  , hugeConfirm2: " клітин). Підтвердити?"
 
     // PANEL
     // p - prefix for a panel
@@ -15,22 +15,22 @@ LifeGameLang.uk = {
   , piStatusRunning: "грає"
   , piStatusPaused: "на паузі"
   , piGeneration: "Покоління: "
-  , piCellInfo: "Чарунка: "
+  , piCellInfo: "Клітина: "
   , piCellInfoEmpty: "&lt;Наведіть мишку на дошку, щоб побачити&gt;"
-  , piCellInfoAlive: "жива"
+  , piCellInfoLive: "жива"
   , piCellInfoDead: "мертва"
-  , piCellInfoBorder: "&lt;Межа чарунки&gt;"
-  , piDelay: "Затримка: "
+  , piCellInfoBorder: "&lt;Межа клітини&gt;"
+  , piPeriod: "Період: "
   , piMs: "мс"
-  , piFps: "кадрів/с"
+  , piGps: "поколінь/с"
   , piBoardSize: "Розмір дошки: "
-  , piCells: "чарунок"
-  , piCellSize: "Розмір чарунки: "
+  , piCells: "клітин"
+  , piCellSize: "Розмір клітини: "
   , piBoardEngine: "Двигун гри: "
-  , pStepDelay: "Затримка кроку: "
-  , pStepDelayMs: "&#8201;мс"
+  , pStep: "Період: "
+  , pStepMs: "&#8201;мс"
   , pCycle: "Цикл"
-  , pOne: "Одна"
+  , pOne: "+Одне"
   , pPause: "Пауза"
 
   , pPaStop: " Пауза після&nbsp;"
@@ -38,7 +38,7 @@ LifeGameLang.uk = {
   , pPaBeginning: " від початку"
   , pPaCurrent: " від поточного"
 
-  , pCellSize: "Розмір чарунки: "
+  , pCellSize: "Розмір клітини: "
   , pPx: "&#8201;пкс"
 
   , pNewGame: "Нова гра"
@@ -47,12 +47,12 @@ LifeGameLang.uk = {
   , pFilling: "Початковий вміст: "
   , pGolden: "Випадково, використовуючи золотий перетин"
   , pAllDead: "Всі мертві"
-  , pAllAlive: "Всі живі"
+  , pAllLive: "Всі живі"
   , pStart: "Почати нову гру"
   , pBoardEngine: "Двигун гри"
   , pCanvasEngine: " Canvas"
   , pDOMEngine: " DOM"
-  , pTip: "Клікайте лівою кнопкою миші, щоб оживити чарунку або правою, щоб убити."
+  , pTip: "Клікайте лівою кнопкою миші, щоб оживити клітину або правою, щоб умертвити."
 
   , rights: "Всі права збережено."
 

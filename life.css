@@ -136,7 +136,7 @@ option {
 #flow-control-panel label {
   margin-left: 20px;
 }
-#delay {
+#period {
   width: 80px;
 }
 #pause-after-panel, #change-size-panel {

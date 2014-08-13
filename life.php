@@ -29,7 +29,7 @@
       <div id="info-status"><span class="red-text"></span></div>
       <div id="info-generation"><span></span></div>
       <div id="info-cell-info"><span class="italic-text"></span></div>
-      <div id="info-delay"><span></span></div>
+      <div id="info-period"><span></span></div>
       <div id="info-board-size"><span></span></div>
       <div id="info-cell-size"><span></span></div>
       <div id="info-board-type"><span></span></div>
@@ -38,7 +38,7 @@
     <div id="flow-control-panel" class="panel-group">
       <input type="button" id="cycle" data-state="stopped" value="">
       <input type="button" id="one" value="">
-      <label><input type="number" id="delay" min="0" max="3600000" value="1000" maxlength="7"></label>
+      <label><input type="number" id="period" min="0" max="3600000" value="1000" maxlength="7"></label>
     </div>
 
     <div class="panel-group">
@@ -63,7 +63,7 @@
       <div class="panel-line"><label><select id="new-game-filling">
         <option value="golden" selected></option>
         <option value="all-dead"></option>
-        <option value="all-alive"></option>
+        <option value="all-live"></option>
       </select></label></div>
       <div class="panel-line"><input type="button" id="new-game-start" value=""></div>
     </div>
