@@ -14,10 +14,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="description" content="<?= $description; ?>">
   <link rel="stylesheet" type="text/css" href="life.css">
-  <script>var LifeGameLang = {};</script>
-  <script src="lang/en.js"></script>
-  <script src="lang/uk.js"></script>
-  <script src="life.js"></script>
+  <script src="loader.js"></script>
   <title></title>
 </head>
 <body>

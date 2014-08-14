@@ -749,637 +749,602 @@ function CookieStorage(view) {
 }
 
 
-window.onload = function(ev) {
-    // do nothing when tests're running
-    if (!getId("board") || !getId("panel")) return;
+// do nothing when tests're running
+if (!getId("board") || !getId("panel")) return;
 
-    // check the browser
-    // IE 9 should ok
-    var hasCanvas;
-    if (
-        typeof Array.prototype.map != "function"
-        || typeof Array.prototype.filter != "function"
-        || typeof Array.prototype.forEach != "function"
-        || typeof Array.prototype.indexOf != "function"
-        || typeof Event.prototype.preventDefault != "function"
-        || typeof document.querySelector != "function"
-        || typeof document.querySelectorAll != "function"
-        || typeof Function.bind != "function"
-        || !ev
-        // check getters
-        || (function() {
-                try {
-                    return !eval('({ get x() { return 1; } }).x === 1');
-                } catch (e) {
-                    return true;
-                }
-           })()
-        // check setters
-        || (function () {
-                try {
-                    var value;
-                    eval('({ set x(v) { value = v; } }).x = 1');
-                    return value !== 1;
-                } catch (e) {
-                    return true;
-                }
-            })()
-    ) {
-        createLifeElem("div", { className: "too-old", innerHTML: "ERROR: Your browser is too old!" }, true);
-        return;
-    } else if (typeof document.createElement("canvas").getContext != "function") {
-        hasCanvas = false;
-        document.getElementById("engine-dom").checked = true;
-        document.getElementById("engine-canvas").disabled = true;
+var hasCanvas;
+if (typeof document.createElement("canvas").getContext != "function") {
+    hasCanvas = false;
+    document.getElementById("engine-dom").checked = true;
+    document.getElementById("engine-canvas").disabled = true;
+} else {
+    hasCanvas = true;
+}
+
+
+function unFitWindow() {
+    var board = getId("board");
+    document.body.style.overflow = "";
+    board.style.paddingLeft = "";
+    board.style.paddingTop = "";
+}
+
+function getTargetGeneration() {
+    var target = view.paGenerationsVal
+      , from = view.paFromVal;
+
+    if (!view.paSwitchVal) return null;
+
+    if (from == "current") {
+        target += game ? game.getGeneration() : 1;
+    }
+    return target;
+}
+
+function calcOptimalBoardSize() {
+    var
+    // cell sizes + cell border sizes (1px every internal + 2px external) + board border sizes (2px)
+    challengerWidth = view.changeSizeVal + 2 + 2
+  , rect = document.documentElement.getBoundingClientRect()
+  , left = rect.left
+  , right = rect.right
+  , targetWidth = (Math.abs(left)+right) * GOLDEN_RATIO_INVERSED
+  , oneCellWidth = view.changeSizeVal + 1
+  , x = 1, y = 0;
+
+    while (challengerWidth - oneCellWidth / 2 < targetWidth) {
+        challengerWidth += oneCellWidth;
+        x++;
+    }
+    y = Math.round(x * GOLDEN_RATIO_INVERSED);
+
+    return { x: x, y: y };
+}
+
+// start a new game in the beginning or
+// at the clicking `Start new game` button
+function startGame() {
+    var options = {}
+      , board = getId("board")
+      , cellC = 0
+      , gameCellC = 0
+      , hugeBoardLim = 50000
+      , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal }
+      , optimalBoardSize = {};
+
+    if (view.ngFitVal) {
+        fitWindow = true;
+
+        // we must style the page before getting its size
+        document.body.style.overflow = "hidden";
+
+        var clientWidth = document.documentElement.clientWidth
+          , clientHeight = document.documentElement.clientHeight
+          , paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2)
+          , paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
+
+        board.style.paddingLeft = paddingLeft+"px";
+        board.style.paddingTop = paddingTop+"px";
+        
+        options.sizeX = Math.floor((clientWidth - 3) / (cellSize.x + 1));
+        options.sizeY = Math.floor((clientHeight - 3) / (cellSize.y + 1));
+
+        view.cycleVal = true;
+        view.iStatus = true;
+
+        alert(_.fitAlert);
     } else {
-        hasCanvas = true;
-    }
+        fitWindow = false;
 
-
-    function unFitWindow() {
-        var board = getId("board");
-        document.body.style.overflow = "";
-        board.style.paddingLeft = "";
-        board.style.paddingTop = "";
-    }
-
-    function getTargetGeneration() {
-        var target = view.paGenerationsVal
-          , from = view.paFromVal;
-
-        if (!view.paSwitchVal) return null;
-
-        if (from == "current") {
-            target += game ? game.getGeneration() : 1;
-        }
-        return target;
-    }
-
-    function calcOptimalBoardSize() {
-        var
-        // cell sizes + cell border sizes (1px every internal + 2px external) + board border sizes (2px)
-        challengerWidth = view.changeSizeVal + 2 + 2
-      , rect = document.documentElement.getBoundingClientRect()
-      , left = rect.left
-      , right = rect.right
-      , targetWidth = (Math.abs(left)+right) * GOLDEN_RATIO_INVERSED
-      , oneCellWidth = view.changeSizeVal + 1
-      , x = 1, y = 0;
-
-        while (challengerWidth - oneCellWidth / 2 < targetWidth) {
-            challengerWidth += oneCellWidth;
-            x++;
-        }
-        y = Math.round(x * GOLDEN_RATIO_INVERSED);
-
-        return { x: x, y: y };
-    }
-
-    // start a new game in the beginning or
-    // at the clicking `Start new game` button
-    function startGame() {
-        var options = {}
-          , board = getId("board")
-          , cellC = 0
-          , gameCellC = 0
-          , hugeBoardLim = 50000
-          , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal }
-          , optimalBoardSize = {};
-
-        if (view.ngFitVal) {
-            fitWindow = true;
-
-            // we must style the page before getting its size
-            document.body.style.overflow = "hidden";
-
-            var clientWidth = document.documentElement.clientWidth
-              , clientHeight = document.documentElement.clientHeight
-              , paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2)
-              , paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
-
-            board.style.paddingLeft = paddingLeft+"px";
-            board.style.paddingTop = paddingTop+"px";
-            
-            options.sizeX = Math.floor((clientWidth - 3) / (cellSize.x + 1));
-            options.sizeY = Math.floor((clientHeight - 3) / (cellSize.y + 1));
-
-            view.cycleVal = true;
-            view.iStatus = true;
-
-            alert(_.fitAlert);
-        } else {
-            fitWindow = false;
-
-            unFitWindow();
-
-            if (!game) {
-                if (!cookie.isFromStorage("ngX") || !cookie.isFromStorage("ngY")) {
-                    optimalBoardSize = calcOptimalBoardSize();
-                    cookie.save("ngX", optimalBoardSize.x);
-                    cookie.save("ngY", optimalBoardSize.y);
-                }
-                if (!cookie.isFromStorage("ngX")) {
-                    options.sizeX = view.ngXVal = optimalBoardSize.x;
-                } else {
-                    options.sizeX = view.ngXVal;
-                }
-                if (!cookie.isFromStorage("ngY")) {
-                    options.sizeY = view.ngYVal = optimalBoardSize.y;
-                } else {
-                    options.sizeY = view.ngYVal;
-                }
-            } else {
-                options.sizeX = view.ngXVal || game.getBoardSize().x;
-                options.sizeY = view.ngYVal || game.getBoardSize().y;
-            }
-        }
-
-        cellC = options.sizeX * options.sizeY;
-        if (cellC > hugeBoardLim) {
-            if (!confirm(_.hugeConfirm1+cellC+_.hugeConfirm2)) {
-                if (game) {
-                    options.sizeX = game.getBoardSize().x;
-                    options.sizeY = game.getBoardSize().y;
-
-                    gameCellC = options.sizeX * options.sizeY;
-                    if (gameCellC > hugeBoardLim) {
-                        options = {};
-                    }
-                } else {
-                    options = {};
-                }
-            }
-        }
+        unFitWindow();
 
         if (!game) {
-            options.period = view.periodVal;
+            if (!cookie.isFromStorage("ngX") || !cookie.isFromStorage("ngY")) {
+                optimalBoardSize = calcOptimalBoardSize();
+                cookie.save("ngX", optimalBoardSize.x);
+                cookie.save("ngY", optimalBoardSize.y);
+            }
+            if (!cookie.isFromStorage("ngX")) {
+                options.sizeX = view.ngXVal = optimalBoardSize.x;
+            } else {
+                options.sizeX = view.ngXVal;
+            }
+            if (!cookie.isFromStorage("ngY")) {
+                options.sizeY = view.ngYVal = optimalBoardSize.y;
+            } else {
+                options.sizeY = view.ngYVal;
+            }
         } else {
-            options.period = view.periodVal !== null ? view.periodVal : game.getPeriod();
+            options.sizeX = view.ngXVal || game.getBoardSize().x;
+            options.sizeY = view.ngYVal || game.getBoardSize().y;
         }
-
-        view.iCellSize = cellSize.x;
-
-        options.initialFilling = view.ngFillingVal;
-        options.boardType = view.engineVal;
-        options.hasCanvas = hasCanvas;
-        options.pauseAfter = getTargetGeneration();
-        options.cellSize = cellSize;
-
-        game = new LifeGame(view, options);
-        game.init();
-        assignCbsTo(game);
-        if (view.cycleVal || fitWindow) {
-            game.runCycle();
-        }
-
-        view.iBoardSize = game.getBoardSize();
-
-        return game;
     }
 
-    // user interaction with boards
-    function assignCbsTo(game) {
-        function onmouse(elem, ev, cb, cbBorder, preventDefault) {
-            var cellSize = game.getCellSize()
-              , boardSize = game.getBoardSize()
-              , rect = elem.getBoundingClientRect()
-              , clickX = ev.clientX - rect.left - 1
-              , clickY = ev.clientY - rect.top - 1
-              , cellWithBorderX = cellSize.x + 1
-              , cellWithBorderY = cellSize.y + 1;
+    cellC = options.sizeX * options.sizeY;
+    if (cellC > hugeBoardLim) {
+        if (!confirm(_.hugeConfirm1+cellC+_.hugeConfirm2)) {
+            if (game) {
+                options.sizeX = game.getBoardSize().x;
+                options.sizeY = game.getBoardSize().y;
 
-            if (clickX % cellWithBorderX && clickY % cellWithBorderY) {
-                var x = parseInt(clickX / cellWithBorderX)
-                  , y = parseInt(clickY / cellWithBorderY);
-
-                if (x < boardSize.x && y < boardSize.y) {
-                    cb(x, y);
+                gameCellC = options.sizeX * options.sizeY;
+                if (gameCellC > hugeBoardLim) {
+                    options = {};
                 }
-            } else if (typeof cbBorder == "function") {
-                cbBorder();
-            }
-
-            if (preventDefault === true) {
-                ev.preventDefault();
+            } else {
+                options = {};
             }
         }
+    }
 
-        game.getBoardElems().forEach(function(elem) {
-            elem.onclick = function(ev) {
+    if (!game) {
+        options.period = view.periodVal;
+    } else {
+        options.period = view.periodVal !== null ? view.periodVal : game.getPeriod();
+    }
+
+    view.iCellSize = cellSize.x;
+
+    options.initialFilling = view.ngFillingVal;
+    options.boardType = view.engineVal;
+    options.hasCanvas = hasCanvas;
+    options.pauseAfter = getTargetGeneration();
+    options.cellSize = cellSize;
+
+    game = new LifeGame(view, options);
+    game.init();
+    assignCbsTo(game);
+    if (view.cycleVal || fitWindow) {
+        game.runCycle();
+    }
+
+    view.iBoardSize = game.getBoardSize();
+
+    return game;
+}
+
+// user interaction with boards
+function assignCbsTo(game) {
+    function onmouse(elem, ev, cb, cbBorder, preventDefault) {
+        var cellSize = game.getCellSize()
+          , boardSize = game.getBoardSize()
+          , rect = elem.getBoundingClientRect()
+          , clickX = ev.clientX - rect.left - 1
+          , clickY = ev.clientY - rect.top - 1
+          , cellWithBorderX = cellSize.x + 1
+          , cellWithBorderY = cellSize.y + 1;
+
+        if (clickX % cellWithBorderX && clickY % cellWithBorderY) {
+            var x = parseInt(clickX / cellWithBorderX)
+              , y = parseInt(clickY / cellWithBorderY);
+
+            if (x < boardSize.x && y < boardSize.y) {
+                cb(x, y);
+            }
+        } else if (typeof cbBorder == "function") {
+            cbBorder();
+        }
+
+        if (preventDefault === true) {
+            ev.preventDefault();
+        }
+    }
+
+    game.getBoardElems().forEach(function(elem) {
+        elem.onclick = function(ev) {
+            onmouse(elem, ev, function(x, y) {
+                game.markCellLive(x, y);
+                view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
+            });
+        }
+        elem.oncontextmenu = function(ev) {
+            onmouse(elem, ev, function(x, y) {
+                game.markCellDead(x, y);
+                view.iCellInfo = { state: "in", x: x, y: y, cellState: false };
+            }, null, true);
+        }
+        elem.onmouseenter = function() {
+            elem.onmousemove = function(ev) {
                 onmouse(elem, ev, function(x, y) {
-                    game.markCellLive(x, y);
-                    view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
+                    var state = game.getStateForCell(x, y);
+                    view.iCellInfo = { state: "in", x: x, y: y, cellState: state };
+                    view.mouseAboveState = { isActive: true, x: x, y: y };
+                }, function() {
+                    view.iCellInfo = { state: "border" };
+                    view.mouseAboveState = { isActive: false };
                 });
             }
-            elem.oncontextmenu = function(ev) {
-                onmouse(elem, ev, function(x, y) {
-                    game.markCellDead(x, y);
-                    view.iCellInfo = { state: "in", x: x, y: y, cellState: false };
-                }, null, true);
-            }
-            elem.onmouseenter = function() {
-                elem.onmousemove = function(ev) {
-                    onmouse(elem, ev, function(x, y) {
-                        var state = game.getStateForCell(x, y);
-                        view.iCellInfo = { state: "in", x: x, y: y, cellState: state };
-                        view.mouseAboveState = { isActive: true, x: x, y: y };
-                    }, function() {
-                        view.iCellInfo = { state: "border" };
-                        view.mouseAboveState = { isActive: false };
-                    });
-                }
-            }
-            elem.onmouseleave = function() {
-                elem.onmousemove = null;
-                view.iCellInfo = { state: "out" };
-                view.mouseAboveState = { isActive: false };
-            }
-        });
+        }
+        elem.onmouseleave = function() {
+            elem.onmousemove = null;
+            view.iCellInfo = { state: "out" };
+            view.mouseAboveState = { isActive: false };
+        }
+    });
+}
+
+
+var _ = I18n();
+I18n.fillPage(_);
+
+
+// The view, according to MVC.
+// It deals with DOM for the panel.
+// The board does not utilize it.
+var view = {
+    // Abbreviations:
+    // - ng - new game
+    // - i - info
+    // - pa - pause after
+    cycleInput:         getId("cycle")
+  , oneInput:           getId("one")
+  , periodInput:        getId("period")
+  , paSwitchInput:      getId("pa-switch")
+  , paGenerationsInput: getId("pa-generations")
+  , paFromInputs:       qsa('input[name="pause-after"]')
+  , changeSizeInput:    getId("change-size")
+  , ngXInput:           getId("new-game-x")
+  , ngYInput:           getId("new-game-y")
+  , ngFitInput:         getId("new-game-fit")
+  , ngFilling:          getId("new-game-filling")
+  , ngStartInput:       getId("new-game-start")
+  , iStatusSpan:      qs("#info-status span")
+  , iGenerationSpan:  qs("#info-generation span")
+  , iCellInfoSpan:    qs("#info-cell-info span")
+  , iBoardSizeSpan:   qs("#info-board-size span")
+  , iCellSizeSpan:    qs("#info-cell-size span")
+  , iPeriodSpan:       qs("#info-period span")
+  , iBoardEngineSpan: qs("#info-board-type span")
+
+    // cached position of the mouse for renew Cell Info at every board redraw
+  , mouseAboveState: { isActive: false }
+
+  , get engineInputs() {
+        // converts into the real array
+        var inputs = qsa('input[name="engine"]')
+          , inputsArray = []
+          , i = 0;
+
+        for (; i < inputs.length; i++) {
+            inputsArray.push( inputs[i] );
+        }
+        return inputsArray;
     }
 
+  , get engineCurrent() {
+        return this.engineInputs.filter(function(input) {
+            return input.checked;
+        })[0];
+    }
 
-    var _ = I18n();
-    I18n.fillPage(_);
+  , get engineVal() {
+        return this.engineCurrent.value;
+    }
 
+  , set engineVal(value) {
+        qs('[name="engine"][value="'+value+'"]').checked = true;
+    }
 
-    // The view, according to MVC.
-    // It deals with DOM for the panel.
-    // The board does not utilize it.
-    var view = {
-        // Abbreviations:
-        // - ng - new game
-        // - i - info
-        // - pa - pause after
-        cycleInput:         getId("cycle")
-      , oneInput:           getId("one")
-      , periodInput:        getId("period")
-      , paSwitchInput:      getId("pa-switch")
-      , paGenerationsInput: getId("pa-generations")
-      , paFromInputs:       qsa('input[name="pause-after"]')
-      , changeSizeInput:    getId("change-size")
-      , ngXInput:           getId("new-game-x")
-      , ngYInput:           getId("new-game-y")
-      , ngFitInput:         getId("new-game-fit")
-      , ngFilling:          getId("new-game-filling")
-      , ngStartInput:       getId("new-game-start")
-      , iStatusSpan:      qs("#info-status span")
-      , iGenerationSpan:  qs("#info-generation span")
-      , iCellInfoSpan:    qs("#info-cell-info span")
-      , iBoardSizeSpan:   qs("#info-board-size span")
-      , iCellSizeSpan:    qs("#info-cell-size span")
-      , iPeriodSpan:       qs("#info-period span")
-      , iBoardEngineSpan: qs("#info-board-type span")
+    // true - is running
+    // false - is in pause
+  , get cycleVal() {
+        return this.cycleInput.getAttribute("data-state") == "running";
+    }
 
-        // cached position of the mouse for renew Cell Info at every board redraw
-      , mouseAboveState: { isActive: false }
+    // state == true - launch
+    // state == false - pause
+  , set cycleVal(state) {
+        this.cycleInput.setAttribute("data-state", state ? "running" : "paused");
+        this.cycleInput.value = state ? _.pPause : _.pCycle;
+    }
 
-      , get engineInputs() {
-            // converts into the real array
-            var inputs = qsa('input[name="engine"]')
-              , inputsArray = []
-              , i = 0;
+  , get periodVal() {
+        var val = parseInt(this.periodInput.value, 10);
+        return val >= 0 && val <= 3600000 ? val : null;
+    }
 
-            for (; i < inputs.length; i++) {
-                inputsArray.push( inputs[i] );
+  , set periodVal(value) {
+        this.periodInput.value = value;
+    }
+
+  , get paSwitchVal() {
+        return this.paSwitchInput.checked;
+    }
+
+  , set paSwitchVal(value) {
+        this.paSwitchInput.checked = value;
+    }
+
+  , get paGenerationsVal() {
+        // it's identical to the new game's X and Y values currently
+        var val = parseInt(this.paGenerationsInput.value, 10);
+        return val > 0 && val < 10000 ? val : null;
+    }
+
+  , set paGenerationsVal(value) {
+        this.paGenerationsInput.value = value;
+    }
+
+  , get paFromVal() {
+        var inputs = qsa('input[name="pause-after"]')
+          , i = 0;
+
+        while (inputs[i]) {
+            if (inputs[i].checked) {
+                return inputs[i].value;
             }
-            return inputsArray;
-        }
-
-      , get engineCurrent() {
-            return this.engineInputs.filter(function(input) {
-                return input.checked;
-            })[0];
-        }
-
-      , get engineVal() {
-            return this.engineCurrent.value;
-        }
-
-      , set engineVal(value) {
-            qs('[name="engine"][value="'+value+'"]').checked = true;
-        }
-
-        // true - is running
-        // false - is in pause
-      , get cycleVal() {
-            return this.cycleInput.getAttribute("data-state") == "running";
-        }
-
-        // state == true - launch
-        // state == false - pause
-      , set cycleVal(state) {
-            this.cycleInput.setAttribute("data-state", state ? "running" : "paused");
-            this.cycleInput.value = state ? _.pPause : _.pCycle;
-        }
-
-      , get periodVal() {
-            var val = parseInt(this.periodInput.value, 10);
-            return val >= 0 && val <= 3600000 ? val : null;
-        }
-
-      , set periodVal(value) {
-            this.periodInput.value = value;
-        }
-
-      , get paSwitchVal() {
-            return this.paSwitchInput.checked;
-        }
-
-      , set paSwitchVal(value) {
-            this.paSwitchInput.checked = value;
-        }
-
-      , get paGenerationsVal() {
-            // it's identical to the new game's X and Y values currently
-            var val = parseInt(this.paGenerationsInput.value, 10);
-            return val > 0 && val < 10000 ? val : null;
-        }
-
-      , set paGenerationsVal(value) {
-            this.paGenerationsInput.value = value;
-        }
-
-      , get paFromVal() {
-            var inputs = qsa('input[name="pause-after"]')
-              , i = 0;
-
-            while (inputs[i]) {
-                if (inputs[i].checked) {
-                    return inputs[i].value;
-                }
-                i++;
-            }
-        }
-
-      , set paFromVal(value) {
-            qs('[name="pause-after"][value="'+value+'"]').checked = true;
-        }
-
-      , get changeSizeVal() {
-            return parseInt(this.changeSizeInput.value, 10);
-        }
-
-      , set changeSizeVal(value) {
-            this.changeSizeInput.value = value;
-        }
-
-      , _ngSizeVal: function(input) {
-            var val = parseInt(input.value, 10);
-            return val > 0 && val < 10000 ? val : null;
-        }
-
-      , get ngXVal() {
-            return this._ngSizeVal(this.ngXInput);
-        }
-
-      , set ngXVal(value) {
-            this.ngXInput.value = value;
-        }
-
-      , get ngYVal() {
-            return this._ngSizeVal(this.ngYInput);
-        }
-
-      , set ngYVal(value) {
-            this.ngYInput.value = value;
-        }
-
-      , enableNgSize: function() {
-            this.ngXInput.disabled = this.ngYInput.disabled = false;
-        }
-
-      , disableNgSize: function() {
-            this.ngXInput.disabled = this.ngYInput.disabled = true;
-        }
-
-      , get ngFitVal() {
-            return this.ngFitInput.checked;
-        }
-
-      , set ngFitVal(value) {
-            this.ngFitInput.checked = value;
-        }
-
-      , get ngFillingVal() {
-            return this.ngFilling.value;
-        }
-
-      , set ngFillingVal(value) {
-            qs('#new-game-filling option[value="'+value+'"]').selected = true;
-        }
-
-        // status == true - running
-        // status == false - paused
-      , set iStatus(status) {
-            var elem = this.iStatusSpan;
-            if (status) {
-                elem.innerHTML = _.piStatusRunning;
-                elem.className = "green-text";
-            } else {
-                elem.innerHTML = _.piStatusPaused;
-                elem.className = "red-text";
-            }
-        }
-
-        // 1000000 => "1 000 000"
-        // for non-negative integer numbers only
-      , _format: function(num) {
-            var unformatted = String(num)
-              , len = unformatted.length
-              , begin = len - 1
-              , end = len
-              , position = 0
-              , result = "";
-
-            for (; begin >= 0; begin--, end--, position++) {
-                if (position && !(position % 3)) {
-                    result = "&#8201;" + result;
-                }
-                result = unformatted.slice(begin, end) + result;
-            }
-            return result;
-        }
-
-      , set iGeneration(generation) {
-            this.iGenerationSpan.innerHTML = this._format(generation);
-        }
-
-      , set iCellInfo(info) {
-            var baseElem = this.iCellInfoSpan;
-
-            switch (info.state) {
-                case "in":
-                    var stateSpan = el("span")
-                      , stateText = info.cellState ? _.piCellInfoLive : _.piCellInfoDead;
-
-                    stateSpan.className = info.cellState ? "green-text" : "red-text";
-                    stateSpan.innerHTML = stateText;
-
-                    baseElem.className = "";
-                    baseElem.innerHTML = "x="+info.x+", y="+info.y+", ";
-                    baseElem.appendChild(stateSpan);
-                    break;
-                case "out":
-                    baseElem.className = "italic-text";
-                    baseElem.innerHTML = _.piCellInfoEmpty;
-                    break;
-                case "border":
-                    baseElem.className = "italic-text";
-                    baseElem.innerHTML = _.piCellInfoBorder;
-                    break;
-            }
-        }
-
-      , renewCellInfo: function() {
-            if (this.mouseAboveState.isActive) {
-                var x = this.mouseAboveState.x
-                  , y = this.mouseAboveState.y;
-
-                this.iCellInfo = { state: "in", x: x, y: y, cellState: game.getStateForCell(x, y) };
-            }
-        }
-
-      , set iBoardSize(size) {
-            var cellC = this._format(size.x * size.y);
-            this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;"+_.piCells+")";
-        }
-
-      , set iCellSize(size) {
-            this.iCellSizeSpan.innerHTML = size+"&#215;"+size+"&#8201;"+_.pPx;
-        }
-
-      , set iPeriod(period) {
-            var gps = 1000 / period;
-            this.iPeriodSpan.innerHTML = period+"&#8201;"+_.piMs+" ("+gps.toFixed(2)+"&#8201;"+_.piGps+")";
-        }
-
-      , set iBoardEngine(engineName) {
-            this.iBoardEngineSpan.innerHTML = engineName;
+            i++;
         }
     }
 
+  , set paFromVal(value) {
+        qs('[name="pause-after"][value="'+value+'"]').checked = true;
+    }
 
-    var cookie = new CookieStorage(view);
-    cookie.load();
+  , get changeSizeVal() {
+        return parseInt(this.changeSizeInput.value, 10);
+    }
 
-    // scrolling can be done only on full DOM therefore we do it
-    // outside the startGame()
-    var fitWindow = false
-      , game = startGame();
+  , set changeSizeVal(value) {
+        this.changeSizeInput.value = value;
+    }
+
+  , _ngSizeVal: function(input) {
+        var val = parseInt(input.value, 10);
+        return val > 0 && val < 10000 ? val : null;
+    }
+
+  , get ngXVal() {
+        return this._ngSizeVal(this.ngXInput);
+    }
+
+  , set ngXVal(value) {
+        this.ngXInput.value = value;
+    }
+
+  , get ngYVal() {
+        return this._ngSizeVal(this.ngYInput);
+    }
+
+  , set ngYVal(value) {
+        this.ngYInput.value = value;
+    }
+
+  , enableNgSize: function() {
+        this.ngXInput.disabled = this.ngYInput.disabled = false;
+    }
+
+  , disableNgSize: function() {
+        this.ngXInput.disabled = this.ngYInput.disabled = true;
+    }
+
+  , get ngFitVal() {
+        return this.ngFitInput.checked;
+    }
+
+  , set ngFitVal(value) {
+        this.ngFitInput.checked = value;
+    }
+
+  , get ngFillingVal() {
+        return this.ngFilling.value;
+    }
+
+  , set ngFillingVal(value) {
+        qs('#new-game-filling option[value="'+value+'"]').selected = true;
+    }
+
+    // status == true - running
+    // status == false - paused
+  , set iStatus(status) {
+        var elem = this.iStatusSpan;
+        if (status) {
+            elem.innerHTML = _.piStatusRunning;
+            elem.className = "green-text";
+        } else {
+            elem.innerHTML = _.piStatusPaused;
+            elem.className = "red-text";
+        }
+    }
+
+    // 1000000 => "1 000 000"
+    // for non-negative integer numbers only
+  , _format: function(num) {
+        var unformatted = String(num)
+          , len = unformatted.length
+          , begin = len - 1
+          , end = len
+          , position = 0
+          , result = "";
+
+        for (; begin >= 0; begin--, end--, position++) {
+            if (position && !(position % 3)) {
+                result = "&#8201;" + result;
+            }
+            result = unformatted.slice(begin, end) + result;
+        }
+        return result;
+    }
+
+  , set iGeneration(generation) {
+        this.iGenerationSpan.innerHTML = this._format(generation);
+    }
+
+  , set iCellInfo(info) {
+        var baseElem = this.iCellInfoSpan;
+
+        switch (info.state) {
+            case "in":
+                var stateSpan = el("span")
+                  , stateText = info.cellState ? _.piCellInfoLive : _.piCellInfoDead;
+
+                stateSpan.className = info.cellState ? "green-text" : "red-text";
+                stateSpan.innerHTML = stateText;
+
+                baseElem.className = "";
+                baseElem.innerHTML = "x="+info.x+", y="+info.y+", ";
+                baseElem.appendChild(stateSpan);
+                break;
+            case "out":
+                baseElem.className = "italic-text";
+                baseElem.innerHTML = _.piCellInfoEmpty;
+                break;
+            case "border":
+                baseElem.className = "italic-text";
+                baseElem.innerHTML = _.piCellInfoBorder;
+                break;
+        }
+    }
+
+  , renewCellInfo: function() {
+        if (this.mouseAboveState.isActive) {
+            var x = this.mouseAboveState.x
+              , y = this.mouseAboveState.y;
+
+            this.iCellInfo = { state: "in", x: x, y: y, cellState: game.getStateForCell(x, y) };
+        }
+    }
+
+  , set iBoardSize(size) {
+        var cellC = this._format(size.x * size.y);
+        this.iBoardSizeSpan.innerHTML = size.x+"&#215;"+size.y+" ("+cellC+"&#8201;"+_.piCells+")";
+    }
+
+  , set iCellSize(size) {
+        this.iCellSizeSpan.innerHTML = size+"&#215;"+size+"&#8201;"+_.pPx;
+    }
+
+  , set iPeriod(period) {
+        var gps = 1000 / period;
+        this.iPeriodSpan.innerHTML = period+"&#8201;"+_.piMs+" ("+gps.toFixed(2)+"&#8201;"+_.piGps+")";
+    }
+
+  , set iBoardEngine(engineName) {
+        this.iBoardEngineSpan.innerHTML = engineName;
+    }
+}
+
+
+var cookie = new CookieStorage(view);
+cookie.load();
+
+// scrolling can be done only on full DOM therefore we do it
+// outside the startGame()
+var fitWindow = false
+  , game = startGame();
+
+if (fitWindow) {
+    getId("board").scrollIntoView();
+}
+
+view.iPeriod = game.getPeriod();
+view.iBoardEngine = game.getBoardEngine();
+
+document.body.addEventListener("keyup", function(ev) {
+    if (ev.keyCode == 27) {  // ESC
+        unFitWindow();
+    }
+}, false);
+
+view.engineInputs.forEach(function(input) {
+    input.addEventListener("change", function() {
+        if (input == view.engineCurrent) {
+            cookie.save("engine", view.engineVal);
+            game.setBoard(view.engineVal);
+            view.iBoardEngine = game.getBoardEngine();
+        }
+    }, false);
+});
+
+view.cycleInput.addEventListener("click", function() {
+    if (!view.cycleVal) {
+        view.cycleVal = true;
+        view.iStatus = true;
+        if (view.paSwitchVal) {
+            game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+        }
+        game.runCycle();
+    } else {
+        view.cycleVal = false;
+        view.iStatus = false;
+        game.stopLoop();
+    }
+}, false);
+
+view.oneInput.addEventListener("click", function() {
+    if (view.cycleVal) {
+        view.cycleVal = false;
+        view.iStatus = false;
+        game.stopLoop();
+    }
+    game.runOne();
+});
+
+view.periodInput.addEventListener("change", function() {
+    if (view.periodVal !== null) {
+        cookie.save("period", view.periodVal);
+        view.iPeriod = view.periodVal;
+        game.changePeriod(view.periodVal);
+    }
+}, false);
+
+view.paSwitchInput.addEventListener("change", function() {
+    cookie.save("paSwitch", +view.paSwitchVal);
+    if (view.paSwitchVal) {
+        game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+    } else {
+        game.clearPauseAfter();
+    }
+});
+
+view.paGenerationsInput.addEventListener("change", function() {
+    cookie.save("paGenerations", view.paGenerationsVal);
+    game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+});
+
+// this listener should work correctly while there are only 2 radio buttons
+view.paFromInputs[0].addEventListener("change", function() {
+    cookie.save("paFrom", view.paFromVal);
+    game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+});
+view.paFromInputs[1].addEventListener("change", function() {
+    cookie.save("paFrom", view.paFromVal);
+});
+
+view.changeSizeInput.addEventListener("change", function() {
+    cookie.save("cellSize", view.changeSizeVal);
+    game.changeCellSize(view.changeSizeVal);
+    view.iCellSize = view.changeSizeVal;
+});
+
+view.ngXInput.addEventListener("change", function() {
+    cookie.save("ngX", view.ngXVal);
+});
+
+view.ngYInput.addEventListener("change", function() {
+    cookie.save("ngY", view.ngYVal);
+});
+
+view.ngFitInput.addEventListener("change", function() {
+    cookie.save("ngFit", +view.ngFitVal);
+    if (view.ngFitVal) {
+        view.disableNgSize();
+    } else {
+        view.enableNgSize();
+    }
+}, false);
+
+view.ngFilling.addEventListener("change", function() {
+    cookie.save("ngFilling", view.ngFillingVal);
+});
+
+view.ngStartInput.addEventListener("click", function() {
+    game.over();
+    startGame();
 
     if (fitWindow) {
         getId("board").scrollIntoView();
     }
-
-    view.iPeriod = game.getPeriod();
-    view.iBoardEngine = game.getBoardEngine();
-
-    document.body.addEventListener("keyup", function(ev) {
-        if (ev.keyCode == 27) {  // ESC
-            unFitWindow();
-        }
-    }, false);
-
-    view.engineInputs.forEach(function(input) {
-        input.addEventListener("change", function() {
-            if (input == view.engineCurrent) {
-                cookie.save("engine", view.engineVal);
-                game.setBoard(view.engineVal);
-                view.iBoardEngine = game.getBoardEngine();
-            }
-        }, false);
-    });
-
-    view.cycleInput.addEventListener("click", function() {
-        if (!view.cycleVal) {
-            view.cycleVal = true;
-            view.iStatus = true;
-            if (view.paSwitchVal) {
-                game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
-            }
-            game.runCycle();
-        } else {
-            view.cycleVal = false;
-            view.iStatus = false;
-            game.stopLoop();
-        }
-    }, false);
-
-    view.oneInput.addEventListener("click", function() {
-        if (view.cycleVal) {
-            view.cycleVal = false;
-            view.iStatus = false;
-            game.stopLoop();
-        }
-        game.runOne();
-    });
-
-    view.periodInput.addEventListener("change", function() {
-        if (view.periodVal !== null) {
-            cookie.save("period", view.periodVal);
-            view.iPeriod = view.periodVal;
-            game.changePeriod(view.periodVal);
-        }
-    }, false);
-
-    view.paSwitchInput.addEventListener("change", function() {
-        cookie.save("paSwitch", +view.paSwitchVal);
-        if (view.paSwitchVal) {
-            game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
-        } else {
-            game.clearPauseAfter();
-        }
-    });
-
-    view.paGenerationsInput.addEventListener("change", function() {
-        cookie.save("paGenerations", view.paGenerationsVal);
-        game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
-    });
-
-    // this listener should work correctly while there are only 2 radio buttons
-    view.paFromInputs[0].addEventListener("change", function() {
-        cookie.save("paFrom", view.paFromVal);
-        game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
-    });
-    view.paFromInputs[1].addEventListener("change", function() {
-        cookie.save("paFrom", view.paFromVal);
-    });
-
-    view.changeSizeInput.addEventListener("change", function() {
-        cookie.save("cellSize", view.changeSizeVal);
-        game.changeCellSize(view.changeSizeVal);
-        view.iCellSize = view.changeSizeVal;
-    });
-
-    view.ngXInput.addEventListener("change", function() {
-        cookie.save("ngX", view.ngXVal);
-    });
-
-    view.ngYInput.addEventListener("change", function() {
-        cookie.save("ngY", view.ngYVal);
-    });
-
-    view.ngFitInput.addEventListener("change", function() {
-        cookie.save("ngFit", +view.ngFitVal);
-        if (view.ngFitVal) {
-            view.disableNgSize();
-        } else {
-            view.enableNgSize();
-        }
-    }, false);
-
-    view.ngFilling.addEventListener("change", function() {
-        cookie.save("ngFilling", view.ngFillingVal);
-    });
-
-    view.ngStartInput.addEventListener("click", function() {
-        game.over();
-        startGame();
-
-        if (fitWindow) {
-            getId("board").scrollIntoView();
-        }
-    }, false);
-}
+}, false);
 
 })();
