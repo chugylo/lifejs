@@ -5,7 +5,7 @@
 QUnit.module("Neighbors list");
 QUnit.test("Check neighbors list length", function(assert) {
 	var x = 10, y = 20
-	  , neighbors = LifeGame.prototype._getCellsNeighbors(x, y);
+	  , neighbors = LifeGameAlias.prototype._getCellsNeighbors(x, y);
 
 	assert.equal(neighbors.length, x * y);
 });
@@ -15,7 +15,7 @@ QUnit.test("Check cells neighbors", function(assert) {
 	}
 
 	var sizeX = 10, sizeY = 20
-	  , neighbors = LifeGame.prototype._getCellsNeighbors(10, 20);
+	  , neighbors = LifeGameAlias.prototype._getCellsNeighbors(10, 20);
 
 	// the order does not matter
 	// we sort arrays to make the test order-independent

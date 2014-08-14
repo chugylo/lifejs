@@ -7,6 +7,8 @@
  */
 
 
+var LifeGameAlias;
+
 (function() {
 
 // shortcuts
@@ -308,6 +310,7 @@ LifeGame.prototype = {
     }    
 }
 LifeGame.defaultCellSize = { x: 7, y: 7 };
+LifeGameAlias = LifeGame;
 
 
 function createLifeElem(tag, attrs, insertNow) {

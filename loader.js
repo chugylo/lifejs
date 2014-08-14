@@ -7,6 +7,7 @@ window.onload = function(ev) {
 
     // global var
     LifeGameLang = {};
+    var LifeGameTest = document.documentElement.getAttribute("data-rel") == "test" ? true : false;
 
     // check the browser
     // IE 9 should ok
@@ -45,10 +46,16 @@ window.onload = function(ev) {
         document.body.innerHTML = "";
         document.body.appendChild(tooOldDiv);
     } else {
+        var testPrefix = LifeGameTest === true ? "../" : "";
+
         ["en", "uk"].forEach(function(lang) {
-            addScript("lang/"+lang+".js");
+            addScript(testPrefix+"lang/"+lang+".js");
         });
 
-        addScript("life.js");
+        addScript(testPrefix+"life.js");
+
+        if (LifeGameTest === true) {
+            addScript("test.js");
+        }
     }
 }
