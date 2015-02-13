@@ -7,6 +7,27 @@
  */
 
 
+// Benchmark.
+// Type `life_benchmarkRun()` in the browser console.
+// Don't touch controls while benchmark is running.
+// It will run for a 250 generations and print result
+// in generations per second.
+
+// Global vars is defined here.
+life_startGame = null;
+life_game = null;
+function life_benchmarkRun() {
+    if (life_startGame) {
+        console.log("Running...");
+        life_game.over();
+        life_startGame(true);
+    }
+}
+function life_benchmarkPrint(ms) {
+    console.log(250 / (ms / 1000) + " gps");
+}
+
+
 (function() {
 
 // shortcuts
@@ -19,7 +40,7 @@ var getId = document.getElementById.bind(document)
 var GOLDEN_RATIO_INVERSED = 0.6180341996797237;
 
 
-function LifeGame(view, args) {
+function LifeGame(view, args, benchmark) {
 
     function fill(fn) {
         var stateTable = []
@@ -118,6 +139,7 @@ function LifeGame(view, args) {
     }
 
     this.init = function () {
+        benchmarkTimestamp = new Date;
         board.activate();
         board.redraw(stateTable);
         renewView();
@@ -150,7 +172,13 @@ function LifeGame(view, args) {
     }
 
     // must be called after .init()
-    this.stopLoop = function() {
+    this.stopLoop = function(printBenchmark) {
+        var printBenchmark = (printBenchmark || printBenchmark === undefined) ? true : false;
+
+        if (benchmark && printBenchmark) {
+            life_benchmarkPrint(new Date - benchmarkTimestamp);
+        }
+
         runs = false;
         clearInterval(interval);
     }
@@ -253,7 +281,7 @@ function LifeGame(view, args) {
     }
 
     this.over = function() {
-        this.stopLoop();
+        this.stopLoop(false);
         if (hasCanvas) {
             canvasBoard.over();
         }
@@ -277,7 +305,8 @@ function LifeGame(view, args) {
       , runs = false
       , generation = 0
       , pauseAfter = args.pauseAfter || null
-      , pauseFromCurrent = false;
+      , pauseFromCurrent = false
+      , benchmarkTimestamp = null;
 }
 LifeGame.prototype = {
     // this function has been moved to the prototype to make it testable
@@ -836,8 +865,9 @@ window.onload = function(ev) {
     }
 
     // start a new game in the beginning or
-    // at the clicking `Start new game` button
-    function startGame() {
+    // at the clicking `Start new game` button or
+    // at the benchmark run
+    var startGame = life_startGame = function(benchmark) {
         var options = {}
           , board = getId("board")
           , cellC = 0
@@ -917,22 +947,28 @@ window.onload = function(ev) {
             options.period = view.periodVal !== null ? view.periodVal : game.getPeriod();
         }
 
+        if (benchmark) {
+            options.period = 0;
+        }
+
         view.iCellSize = cellSize.x;
 
         options.initialFilling = view.ngFillingVal;
         options.boardType = view.engineVal;
         options.hasCanvas = hasCanvas;
-        options.pauseAfter = getTargetGeneration();
+        options.pauseAfter = benchmark ? 250 : getTargetGeneration();
         options.cellSize = cellSize;
 
-        game = new LifeGame(view, options);
+        game = new LifeGame(view, options, benchmark);
         game.init();
         assignCbsTo(game);
-        if (view.cycleVal || fitWindow) {
+        if (view.cycleVal || fitWindow || benchmark) {
             game.runCycle();
         }
 
         view.iBoardSize = game.getBoardSize();
+
+        life_game = game;
 
         return game;
     }
