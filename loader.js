@@ -14,6 +14,7 @@ window.onload = function(ev) {
     if (
         typeof Array.prototype.map != "function"
         || typeof Array.prototype.filter != "function"
+        || typeof Array.prototype.reduce != "function"
         || typeof Array.prototype.forEach != "function"
         || typeof Array.prototype.indexOf != "function"
         || typeof Event.prototype.preventDefault != "function"

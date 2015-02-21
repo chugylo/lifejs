@@ -29,26 +29,6 @@
 
 var LifeGameAlias;
 
-// Benchmark.
-// Type `life_benchmarkRun()` in the browser console.
-// Don't touch controls while benchmark is running.
-// It will run for a 250 generations and print result
-// in generations per second.
-
-// Global vars is defined here.
-life_startGame = null;
-life_game = null;
-function life_benchmarkRun() {
-    if (life_startGame) {
-        console.log("Running...");
-        life_game.over();
-        life_startGame(true);
-    }
-}
-function life_benchmarkPrint(ms) {
-    console.log(250 / (ms / 1000) + " gps");
-}
-
 
 (function() {
 
@@ -62,7 +42,80 @@ var getId = document.getElementById.bind(document)
 var GOLDEN_RATIO_INVERSED = 0.6180341996797237;
 
 
-function LifeGame(view, args, benchmark) {
+/*
+ * Benchmark.
+ * Type `life_benchmark.run()` in the browser console.
+ * Don't touch controls while benchmark is running.
+ * It will perform 10 times for 250 generations and print result.
+ */
+
+// global var
+life_benchmark = {
+    startGame: null
+  , game: null
+  , push: function(ms) {
+        this._list.push(250 / (ms / 1000));
+        this._repeatCount++;
+        console.log(this._repeatCount+"/"+this._repeatCountLim+" times repeated");
+        this._time();
+    }
+  , run: function() {
+        if (this.startGame) {  // already defined
+            // clean up after previous run
+            this._list = [];
+            this._repeatCount = 0;
+
+            console.log("Starting...");
+            this._time();  // for first time
+        }
+    }
+  , _repeatCount: 0
+  , _repeatCountLim: 10
+  , _list: []
+  , _time: function() {
+        if (this._repeatCount < this._repeatCountLim) {
+            this.game.over();
+            this.startGame(true);
+        } else {
+            this._printResults();
+        }
+    }
+    // arithmetic mean
+  , _mean: function() {
+        return this._list.reduce(function(sum, num) {
+            return sum + num;
+        }, 0) / this._list.length;
+    }
+  , _range: function() {
+        return Math.max.apply(null, this._list) - Math.min.apply(null, this._list);
+    }
+  , _standardDeviation: function() {
+        var meanVal = this._mean()
+          , variance = this._list.reduce(function(sum, num) {
+                return sum += Math.pow(num - meanVal, 2);
+            }, 0) / this._list.length;
+
+        return Math.sqrt(variance);
+    }
+    // coefficient of variation, %
+  , _CV: function() {
+        return this._standardDeviation() / this._mean() * 100;
+    }
+  , _format: function(num) {
+        return num - parseInt(num) === 0 ? num : num.toFixed(4);
+    }
+  , _printResults: function() {
+        console.log(
+            "Result: "+
+            "mean: "+this._format(this._mean())+
+            "gps, CV: "+this._format(this._CV())+
+            "%, range: "+this._format(this._range())
+        );
+    }
+};
+
+
+var LifeGame = function(view, args, benchmark) {
 
     function fill(fn) {
         var stateTable = []
@@ -198,7 +251,7 @@ function LifeGame(view, args, benchmark) {
         var printBenchmark = (printBenchmark || printBenchmark === undefined) ? true : false;
 
         if (benchmark && printBenchmark) {
-            life_benchmarkPrint(new Date - benchmarkTimestamp);
+            life_benchmark.push(new Date - benchmarkTimestamp);
         }
 
         runs = false;
@@ -379,7 +432,7 @@ function createLifeElem(tag, attrs, insertNow) {
 }
 
 
-function BaseBoard() {
+var BaseBoard = function() {
     this._init = function(sizeX, sizeY, cellSize) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
@@ -424,7 +477,7 @@ function BaseBoard() {
 
 // draw a board on a huge tree of DOM elements
 // slow, use Canvas what is much faster
-function DOMBoard(sizeX, sizeY, cellSize) {
+var DOMBoard = function(sizeX, sizeY, cellSize) {
     var elTable = []
       , cellCount = sizeX * sizeY;
 
@@ -516,7 +569,7 @@ DOMBoard.prototype = new BaseBoard();
 
 
 // draw a board in a <canvas> tag
-function CanvasBoard(sizeX, sizeY, cellSize) {
+var CanvasBoard = function(sizeX, sizeY, cellSize) {
     this.boardType = "Canvas";
 
     this._init(sizeX, sizeY, cellSize);
@@ -595,7 +648,7 @@ function CanvasBoard(sizeX, sizeY, cellSize) {
 CanvasBoard.prototype = new BaseBoard();
 
 
-function I18n() {
+var I18n = function() {
     var lang = document.getElementsByTagName("html")[0].getAttribute("lang") || "en"
       , _ = {}
       , key = ""
@@ -693,7 +746,7 @@ I18n.fillPage = function(_) {
 }
 
 
-function CookieStorage(view) {
+var CookieStorage = function(view) {
     var saveMap = [
             "period"
           , "paSwitch"
@@ -856,7 +909,7 @@ function calcOptimalBoardSize() {
     // start a new game in the beginning or
     // at the clicking `Start new game` button or
     // at the benchmark run
-    var startGame = life_startGame = function(benchmark) {
+    var startGame = life_benchmark.startGame = function(benchmark) {
         var options = {}
           , board = getId("board")
           , cellC = 0
@@ -945,7 +998,7 @@ function calcOptimalBoardSize() {
         options.initialFilling = view.ngFillingVal;
         options.boardType = view.engineVal;
         options.hasCanvas = hasCanvas;
-        options.pauseAfter = benchmark ? 250 : getTargetGeneration();
+        options.pauseAfter = benchmark ? 251 : getTargetGeneration();
         options.cellSize = cellSize;
 
         game = new LifeGame(view, options, benchmark);
@@ -957,7 +1010,7 @@ function calcOptimalBoardSize() {
 
     view.iBoardSize = game.getBoardSize();
 
-        life_game = game;
+    life_benchmark.game = game;
 
     return game;
 }
