@@ -290,7 +290,7 @@ var LifeGame = function(view, args, benchmark) {
         board.redraw(stateTable);
 
         if (memRuns) {
-            this.runLoop(period);
+            this.runCycle();
         }
     }
 
