@@ -479,7 +479,8 @@ var BaseBoard = function() {
 // slow, use Canvas what is much faster
 var DOMBoard = function(sizeX, sizeY, cellSize) {
     var elTable = []
-      , cellCount = sizeX * sizeY;
+      , cellCount = sizeX * sizeY
+      , baseElIsFilled = false;
 
     this.boardType = "DOM";
 
@@ -489,19 +490,19 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
     this.baseEl.style.width = this.width + "px";
     this.baseEl.style.height = this.height + "px";
 
-    // this section takes a lot of time!
-    (function(board) {
-        var width = board.cellSize.x + "px"
-          , height = board.cellSize.y + "px"
+    // the function takes a lot of cpu
+    this._fillBaseEl = function(board) {
+        var width = this.cellSize.x + "px"
+          , height = this.cellSize.y + "px"
           , y = 0, x = 0
           , rowDiv
           , cellDiv;
 
-        for (; y < board.sizeY; y++) {
+        for (; y < this.sizeY; y++) {
             rowDiv = el("div");
             rowDiv.style.height = height;
             rowDiv.className = "row";
-            for (x = 0; x < board.sizeX; x++) {
+            for (x = 0; x < this.sizeX; x++) {
                 cellDiv = el("div");
                 cellDiv.style.width = width;
                 cellDiv.style.height = height;
@@ -509,9 +510,11 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
                 rowDiv.appendChild(cellDiv);
                 elTable[ x * sizeY + y ] = cellDiv;
             }
-            board.baseEl.appendChild(rowDiv);
+            this.baseEl.appendChild(rowDiv);
         }
-    })(this);
+
+        baseElIsFilled = true;
+    }
 
     // the function takes a lot of cpu
     this.changeCellSize = function(cellSize) {
@@ -536,6 +539,12 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
     }
 
     this.redraw = function(stateTable) {
+        // we fill base element at actual first draw but not at init
+        // to prevent wasting cpu if current board is canvas
+        if (!baseElIsFilled) {
+            this._fillBaseEl();
+        }
+
         for (var i = 0; i < cellCount; i++) {
             elTable[i].style.backgroundColor = stateTable[i] ? "black" : "white";
         }
