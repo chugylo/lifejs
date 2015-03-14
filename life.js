@@ -115,59 +115,109 @@ life_benchmark = {
 };
 
 
-var LifeGame = function(view, args, benchmark) {
+/*
+ * The abstract core of the game.
+ */
+var game = {
+   sizeX: 0
+  , sizeY: 0
+    // neighbors & state table are 1-dimensional arrays
+    // for make it awesome fast
+  , neighbors: []
+  , stateTable: []
 
-    function fill(fn) {
-        var stateTable = []
-          , pos = 0
-          , cellCount = sizeX * sizeY;
+    // we need a slim and fast code in here and therefore don't mess with
+    // prototypes and constructors
+  , init: function(sizeX, sizeY, initialFilling) {
+        this.sizeX = sizeX, this.sizeY = sizeY;
 
-        for (; pos < cellCount; pos++) {
-            stateTable.push( fn() );
+        this.fillCellsNeighbors();
+        this.initStateTable(initialFilling);
+  }
+
+    // explicit arguments and returning is for use only
+    // when calling from a test suit
+  , fillCellsNeighbors: function(sizeX, sizeY) {
+        var x = 0, y = 0
+          , neighbors = []
+          , sizeX = typeof sizeX == "number" ? sizeX : this.sizeX
+          , sizeY = typeof sizeY == "number" ? sizeY : this.sizeY;
+
+        this.neighbors = [];
+
+        for (; x < sizeX; x++) {
+            for (y = 0; y < sizeY; y++) {
+                neighbors = [ [x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1] ];
+                // filter values which are out of the board
+                neighbors = neighbors.filter(function(neighbor) {
+                    return (neighbor[0] >= 0 && neighbor[0] < sizeX
+                        && neighbor[1] >= 0 && neighbor[1] < sizeY)
+                        ? true : false;
+                });
+                // convert coords to 1-dim index
+                neighbors = neighbors.map(function(neighbor) {
+                    return neighbor[0] * sizeY + neighbor[1];
+                });
+                this.neighbors.push(neighbors);
+            }
         }
-        return stateTable;
+
+        return this.neighbors;
     }
 
-    // the state table is a 1-dimensional array for make it awesome fast
-    function initStateTable() {
+  , fill: function(fn) {
+        var pos = 0
+          , cellCount = this.sizeX * this.sizeY;
+
+        this.stateTable = [];
+
+        for (; pos < cellCount; pos++) {
+            this.stateTable.push( fn() );
+        }
+    }
+
+  , initStateTable: function(initialFilling) {
         switch (initialFilling) {
             case "all-live":
-                return fill(function() {
+                this.fill(function() {
                     return true;
                 });
+                break;
             case "all-dead":
-                return fill(function() {
+                this.fill(function() {
                     return false;
                 });
+                break;
             default:
-                return fill(function() {
+                this.fill(function() {
                     return Math.random() >= GOLDEN_RATIO_INVERSED ? true : false;
                 });
+                break;
         }
     }
 
     // the function takes a lot of cpu
-    function recalcStateToDiff() {
+  , recalcStateToDiff: function() {
         var stateDiff = { newLive: [], newDead: [] }
           , activeNeighborsCount = 0
           , pos = 0, i = 0
-          , cellCount = cellsNeighbors.length
+          , cellCount = this.neighbors.length
           , neighborsCount = 0;
 
         for (; pos < cellCount; pos++) {
-            for (i = 0, activeNeighborsCount = 0, neighborsCount = cellsNeighbors[pos].length; i < neighborsCount; i++) {
-                if (stateTable[ cellsNeighbors[pos][i] ]) {
+            for (i = 0, activeNeighborsCount = 0, neighborsCount = this.neighbors[pos].length; i < neighborsCount; i++) {
+                if (this.stateTable[ this.neighbors[pos][i] ]) {
                     activeNeighborsCount++;
                 }
             }
 
             if (activeNeighborsCount != 2) {
                 if (activeNeighborsCount == 3) {
-                    if (!stateTable[pos]) {  // dead cell will return live
+                    if (!this.stateTable[pos]) {  // dead cell will return live
                         stateDiff.newLive.push(pos);
                     }
                 } else {
-                    if (stateTable[pos]) {  // live cell will return dead
+                    if (this.stateTable[pos]) {  // live cell will return dead
                         stateDiff.newDead.push(pos);
                     }
                 }
@@ -176,7 +226,7 @@ var LifeGame = function(view, args, benchmark) {
         return stateDiff;
     }
 
-    function applyDiffToStateTable(diff) {
+  , applyDiffToStateTable: function(diff) {
         var i = 0
           , newLive = diff.newLive
           , newDead = diff.newDead
@@ -184,12 +234,42 @@ var LifeGame = function(view, args, benchmark) {
           , newDeadLen = newDead.length;
 
         for (; i < newLiveLen; i++) {
-            stateTable[ newLive[i] ] = true;
+            this.stateTable[ newLive[i] ] = true;
         }
         for (i = 0; i < newDeadLen; i++) {
-            stateTable[ newDead[i] ] = false;
+            this.stateTable[ newDead[i] ] = false;
         }
     }
+
+  , setDead: function(x, y) {
+        var pos = this.XYToPos(x, y);
+        this.stateTable[pos] = false;
+
+        return pos;
+    }
+
+  , setLive: function(x, y) {
+        var pos = this.XYToPos(x, y);
+        this.stateTable[pos] = true;
+
+        return pos;
+    }
+
+  , getState: function(x, y) {
+        return this.stateTable[ this.XYToPos(x, y) ];
+    }
+
+  , XYToPos: function(x, y) {
+        return x * this.sizeY + y;
+    }
+};
+LifeGameAlias = game;  // make alias for testing purpose
+
+
+/*
+ * Make current instance of the game.
+ */
+function GameInstance(view, args, benchmark) {
 
     function renewView() {
         generation++;
@@ -202,13 +282,9 @@ var LifeGame = function(view, args, benchmark) {
         view.cycleVal = false;
     }
 
-    function XYToPos(x, y) {
-        return x * sizeY + y;
-    }
-
     function runOne() {
-        var diff = recalcStateToDiff();
-        applyDiffToStateTable(diff);
+        var diff = game.recalcStateToDiff();
+        game.applyDiffToStateTable(diff);
         board.redrawDiff(diff);
         renewView();
     }
@@ -216,7 +292,7 @@ var LifeGame = function(view, args, benchmark) {
     this.init = function () {
         benchmarkTimestamp = new Date;
         board.activate();
-        board.redraw(stateTable);
+        board.redraw(game.stateTable);
         renewView();
     }
 
@@ -287,7 +363,7 @@ var LifeGame = function(view, args, benchmark) {
         if (board.cellSize.x !== cellSize.x || board.cellSize.y !== cellSize.y) {
             board.changeCellSize(cellSize);
         }
-        board.redraw(stateTable);
+        board.redraw(game.stateTable);
 
         if (memRuns) {
             this.runCycle();
@@ -319,7 +395,7 @@ var LifeGame = function(view, args, benchmark) {
     }
 
     this.getStateForCell = function(x, y) {
-        return stateTable[ XYToPos(x, y) ];
+        return game.getState(x, y);
     }
 
     this.getGeneration = function() {
@@ -339,19 +415,17 @@ var LifeGame = function(view, args, benchmark) {
         cellSize = { x: newSize, y: newSize };
         board.changeCellSize(cellSize);
         if (board.boardType == "Canvas") {
-            board.redraw(stateTable);
+            board.redraw(game.stateTable);
         }
     }
 
     this.markCellLive = function(x, y) {
-        var pos = XYToPos(x, y);
-        stateTable[pos] = true;
+        var pos = game.setLive(x, y);
         board.redrawCellAsLive(pos);
     }
 
     this.markCellDead = function(x, y) {
-        var pos = XYToPos(x, y);
-        stateTable[pos] = false;
+        var pos = game.setDead(x, y);
         board.redrawCellAsDead(pos);
     }
 
@@ -367,12 +441,10 @@ var LifeGame = function(view, args, benchmark) {
     // 100:62 - golden ratio
     var sizeX = args.sizeX || 100
       , sizeY = args.sizeY || 62
-      , cellSize = args.cellSize || LifeGame.defaultCellSize
+      , cellSize = args.cellSize || { x: 7, y: 7 }
       , period = typeof args.period == "number" && args.period >= 0 ? args.period : 1000
       , hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas
       , initialFilling = args.initialFilling || "golden"
-      , stateTable = initStateTable()
-      , cellsNeighbors = this._getCellsNeighbors(sizeX, sizeY)
       , canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null
       , domBoard = new DOMBoard(sizeX, sizeY, cellSize)
       , board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard
@@ -382,37 +454,9 @@ var LifeGame = function(view, args, benchmark) {
       , pauseAfter = args.pauseAfter || null
       , pauseFromCurrent = false
       , benchmarkTimestamp = null;
-}
-LifeGame.prototype = {
-    // this function has been moved to the prototype to make it testable
-    _getCellsNeighbors: function(sizeX, sizeY) {
-        var cellsNeighbors = []
-          , x = 0, y = 0
-          , neighbors = [];
 
-        for (; x < sizeX; x++) {
-            for (y = 0; y < sizeY; y++) {
-                neighbors = [ [x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1] ];
-                // filter values which are out of the board
-                neighbors = neighbors.filter(function(neighbor) {
-                    return (neighbor[0] >= 0 && neighbor[0] < sizeX
-                        && neighbor[1] >= 0 && neighbor[1] < sizeY)
-                        ? true : false;
-                });
-                // convert coords to 1-dim index
-                neighbors = neighbors.map(function(neighbor) {
-                    return neighbor[0] * sizeY + neighbor[1];
-                });
-                // we push result to the 1-dimensional array for
-                // an exellent performance when it will used
-                cellsNeighbors.push(neighbors);
-            }
-        }
-        return cellsNeighbors;
-    }    
+    game.init(sizeX, sizeY, initialFilling);
 }
-LifeGame.defaultCellSize = { x: 7, y: 7 };
-LifeGameAlias = LifeGame;
 
 
 function createLifeElem(tag, attrs, insertNow) {
@@ -890,7 +934,7 @@ function getTargetGeneration() {
     if (!view.paSwitchVal) return null;
 
     if (from == "current") {
-        target += game ? game.getGeneration() : 1;
+        target += gi ? gi.getGeneration() : 1;
     }
     return target;
 }
@@ -915,17 +959,17 @@ function calcOptimalBoardSize() {
     return { x: x, y: y };
 }
 
-    // start a new game in the beginning or
-    // at the clicking `Start new game` button or
-    // at the benchmark run
-    var startGame = life_benchmark.startGame = function(benchmark) {
-        var options = {}
-          , board = getId("board")
-          , cellC = 0
-          , gameCellC = 0
-          , hugeBoardLim = 50000
-          , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal }
-          , optimalBoardSize = {};
+// start a new game in the beginning or
+// at the clicking `Start new game` button or
+// at the benchmark run
+var startGame = life_benchmark.startGame = function(benchmark) {
+    var options = {}
+      , board = getId("board")
+      , cellC = 0
+      , gameCellC = 0
+      , hugeBoardLim = 50000
+      , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal }
+      , optimalBoardSize = {};
 
     if (view.ngFitVal) {
         fitWindow = true;
@@ -953,7 +997,7 @@ function calcOptimalBoardSize() {
 
         unFitWindow();
 
-        if (!game) {
+        if (!gi) {
             if (!cookie.isFromStorage("ngX") || !cookie.isFromStorage("ngY")) {
                 optimalBoardSize = calcOptimalBoardSize();
                 cookie.save("ngX", optimalBoardSize.x);
@@ -970,17 +1014,17 @@ function calcOptimalBoardSize() {
                 options.sizeY = view.ngYVal;
             }
         } else {
-            options.sizeX = view.ngXVal || game.getBoardSize().x;
-            options.sizeY = view.ngYVal || game.getBoardSize().y;
+            options.sizeX = view.ngXVal || gi.getBoardSize().x;
+            options.sizeY = view.ngYVal || gi.getBoardSize().y;
         }
     }
 
     cellC = options.sizeX * options.sizeY;
     if (cellC > hugeBoardLim) {
         if (!confirm(_.hugeConfirm1+cellC+_.hugeConfirm2)) {
-            if (game) {
-                options.sizeX = game.getBoardSize().x;
-                options.sizeY = game.getBoardSize().y;
+            if (gi) {
+                options.sizeX = gi.getBoardSize().x;
+                options.sizeY = gi.getBoardSize().y;
 
                 gameCellC = options.sizeX * options.sizeY;
                 if (gameCellC > hugeBoardLim) {
@@ -992,10 +1036,10 @@ function calcOptimalBoardSize() {
         }
     }
 
-    if (!game) {
+    if (!gi) {
         options.period = view.periodVal;
     } else {
-        options.period = view.periodVal !== null ? view.periodVal : game.getPeriod();
+        options.period = view.periodVal !== null ? view.periodVal : gi.getPeriod();
     }
 
         if (benchmark) {
@@ -1010,25 +1054,25 @@ function calcOptimalBoardSize() {
         options.pauseAfter = benchmark ? 251 : getTargetGeneration();
         options.cellSize = cellSize;
 
-        game = new LifeGame(view, options, benchmark);
-        game.init();
-        assignCbsTo(game);
+        gi = new GameInstance(view, options, benchmark);
+        gi.init();
+        assignCbsTo(gi);
         if (view.cycleVal || fitWindow || benchmark) {
-            game.runCycle();
+            gi.runCycle();
         }
 
-    view.iBoardSize = game.getBoardSize();
+    view.iBoardSize = gi.getBoardSize();
 
-    life_benchmark.game = game;
+    life_benchmark.game = gi;
 
-    return game;
+    return gi;
 }
 
 // user interaction with boards
-function assignCbsTo(game) {
+function assignCbsTo(gi) {
     function onmouse(elem, ev, cb, cbBorder, preventDefault) {
-        var cellSize = game.getCellSize()
-          , boardSize = game.getBoardSize()
+        var cellSize = gi.getCellSize()
+          , boardSize = gi.getBoardSize()
           , rect = elem.getBoundingClientRect()
           , clickX = ev.clientX - rect.left - 1
           , clickY = ev.clientY - rect.top - 1
@@ -1051,23 +1095,23 @@ function assignCbsTo(game) {
         }
     }
 
-    game.getBoardElems().forEach(function(elem) {
+    gi.getBoardElems().forEach(function(elem) {
         elem.onclick = function(ev) {
             onmouse(elem, ev, function(x, y) {
-                game.markCellLive(x, y);
+                gi.markCellLive(x, y);
                 view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
             });
         }
         elem.oncontextmenu = function(ev) {
             onmouse(elem, ev, function(x, y) {
-                game.markCellDead(x, y);
+                gi.markCellDead(x, y);
                 view.iCellInfo = { state: "in", x: x, y: y, cellState: false };
             }, null, true);
         }
         elem.onmouseenter = function() {
             elem.onmousemove = function(ev) {
                 onmouse(elem, ev, function(x, y) {
-                    var state = game.getStateForCell(x, y);
+                    var state = gi.getStateForCell(x, y);
                     view.iCellInfo = { state: "in", x: x, y: y, cellState: state };
                     view.mouseAboveState = { isActive: true, x: x, y: y };
                 }, function() {
@@ -1322,7 +1366,7 @@ var view = {
             var x = this.mouseAboveState.x
               , y = this.mouseAboveState.y;
 
-            this.iCellInfo = { state: "in", x: x, y: y, cellState: game.getStateForCell(x, y) };
+            this.iCellInfo = { state: "in", x: x, y: y, cellState: gi.getStateForCell(x, y) };
         }
     }
 
@@ -1352,14 +1396,14 @@ cookie.load();
 // scrolling can be done only on full DOM therefore we do it
 // outside the startGame()
 var fitWindow = false
-  , game = startGame();
+  , gi = startGame();
 
 if (fitWindow) {
     getId("board").scrollIntoView();
 }
 
-view.iPeriod = game.getPeriod();
-view.iBoardEngine = game.getBoardEngine();
+view.iPeriod = gi.getPeriod();
+view.iBoardEngine = gi.getBoardEngine();
 
 document.body.addEventListener("keyup", function(ev) {
     if (ev.keyCode == 27) {  // ESC
@@ -1371,8 +1415,8 @@ view.engineInputs.forEach(function(input) {
     input.addEventListener("change", function() {
         if (input == view.engineCurrent) {
             cookie.save("engine", view.engineVal);
-            game.setBoard(view.engineVal);
-            view.iBoardEngine = game.getBoardEngine();
+            gi.setBoard(view.engineVal);
+            view.iBoardEngine = gi.getBoardEngine();
         }
     }, false);
 });
@@ -1382,13 +1426,13 @@ view.cycleInput.addEventListener("click", function() {
         view.cycleVal = true;
         view.iStatus = true;
         if (view.paSwitchVal) {
-            game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+            gi.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
         }
-        game.runCycle();
+        gi.runCycle();
     } else {
         view.cycleVal = false;
         view.iStatus = false;
-        game.stopLoop();
+        gi.stopLoop();
     }
 }, false);
 
@@ -1396,37 +1440,37 @@ view.oneInput.addEventListener("click", function() {
     if (view.cycleVal) {
         view.cycleVal = false;
         view.iStatus = false;
-        game.stopLoop();
+        gi.stopLoop();
     }
-    game.runOne();
+    gi.runOne();
 });
 
 view.periodInput.addEventListener("change", function() {
     if (view.periodVal !== null) {
         cookie.save("period", view.periodVal);
         view.iPeriod = view.periodVal;
-        game.changePeriod(view.periodVal);
+        gi.changePeriod(view.periodVal);
     }
 }, false);
 
 view.paSwitchInput.addEventListener("change", function() {
     cookie.save("paSwitch", +view.paSwitchVal);
     if (view.paSwitchVal) {
-        game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+        gi.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
     } else {
-        game.clearPauseAfter();
+        gi.clearPauseAfter();
     }
 });
 
 view.paGenerationsInput.addEventListener("change", function() {
     cookie.save("paGenerations", view.paGenerationsVal);
-    game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+    gi.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
 });
 
 // this listener should work correctly while there are only 2 radio buttons
 view.paFromInputs[0].addEventListener("change", function() {
     cookie.save("paFrom", view.paFromVal);
-    game.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+    gi.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
 });
 view.paFromInputs[1].addEventListener("change", function() {
     cookie.save("paFrom", view.paFromVal);
@@ -1434,7 +1478,7 @@ view.paFromInputs[1].addEventListener("change", function() {
 
 view.changeSizeInput.addEventListener("change", function() {
     cookie.save("cellSize", view.changeSizeVal);
-    game.changeCellSize(view.changeSizeVal);
+    gi.changeCellSize(view.changeSizeVal);
     view.iCellSize = view.changeSizeVal;
 });
 
@@ -1460,7 +1504,7 @@ view.ngFilling.addEventListener("change", function() {
 });
 
 view.ngStartInput.addEventListener("click", function() {
-    game.over();
+    gi.over();
     startGame();
 
     if (fitWindow) {
