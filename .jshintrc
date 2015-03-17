@@ -1,0 +1,21 @@
+{
+  "browser": true,
+  "curly": true,
+  "devel": true,
+  "es5": true,
+  "laxcomma": true,
+  "maxcomplexity": 10,
+  "undef": true,
+  "unused": true,
+
+  "predef": [
+    "life_benchmark",
+    "LifeGameLang"
+  ],
+
+  "-W014": true,
+  "-W018": true,
+  "-W020": true,
+  "-W058": true,
+  "-W078": true
+}

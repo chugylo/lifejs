@@ -129,7 +129,8 @@ var game = {
     // we need a slim and fast code in here and therefore don't mess with
     // prototypes and constructors
   , init: function(sizeX, sizeY, initialFilling) {
-        this.sizeX = sizeX, this.sizeY = sizeY;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
 
         this.fillCellsNeighbors();
         this.initStateTable(initialFilling);
@@ -294,7 +295,7 @@ function GameInstance(view, args, benchmark) {
         board.activate();
         board.redraw(game.stateTable);
         renewView();
-    }
+    };
 
     // must be called after .init()
     this.runOne = runOne;
@@ -320,11 +321,11 @@ function GameInstance(view, args, benchmark) {
                 }
             }
         }, period);
-    }
+    };
 
     // must be called after .init()
-    this.stopLoop = function(printBenchmark) {
-        var printBenchmark = (printBenchmark || printBenchmark === undefined) ? true : false;
+    this.stopLoop = function(printBenchmarkParam) {
+        var printBenchmark = (printBenchmarkParam || printBenchmarkParam === undefined) ? true : false;
 
         if (benchmark && printBenchmark) {
             life_benchmark.push(new Date - benchmarkTimestamp);
@@ -332,7 +333,7 @@ function GameInstance(view, args, benchmark) {
 
         runs = false;
         clearInterval(interval);
-    }
+    };
 
     // newPeriod is a positive number or zero
     this.changePeriod = function(newPeriod) {
@@ -342,10 +343,12 @@ function GameInstance(view, args, benchmark) {
         } else {
             period = newPeriod;
         }
-    }
+    };
 
     this.setBoard = function(boardType) {
-        if (!hasCanvas) return;
+        if (!hasCanvas) {
+            return;
+        }
 
         var newBoard
           , memRuns = runs;
@@ -368,7 +371,7 @@ function GameInstance(view, args, benchmark) {
         if (memRuns) {
             this.runCycle();
         }
-    }
+    };
 
     this.getBoardElems = function() {
         if (hasCanvas) {
@@ -376,40 +379,40 @@ function GameInstance(view, args, benchmark) {
         } else {
             return [domBoard.baseEl];
         }
-    }
+    };
 
     this.getCellSize = function() {
         return cellSize;
-    }
+    };
 
     this.getBoardSize = function() {
         return { x: sizeX, y: sizeY };
-    }
+    };
 
     this.getPeriod = function() {
         return period;
-    }
+    };
 
     this.getBoardEngine = function() {
         return board.boardType;
-    }
+    };
 
     this.getStateForCell = function(x, y) {
         return game.getState(x, y);
-    }
+    };
 
     this.getGeneration = function() {
         return generation;
-    }
+    };
 
     this.pauseAfter = function(generation, fromCurrent) {
         pauseFromCurrent = fromCurrent ? fromCurrent : false;
         pauseAfter = generation;
-    }
+    };
 
     this.clearPauseAfter = function() {
         pauseAfter = null;
-    }
+    };
 
     this.changeCellSize = function(newSize) {
         cellSize = { x: newSize, y: newSize };
@@ -417,17 +420,17 @@ function GameInstance(view, args, benchmark) {
         if (board.boardType == "Canvas") {
             board.redraw(game.stateTable);
         }
-    }
+    };
 
     this.markCellLive = function(x, y) {
         var pos = game.setLive(x, y);
         board.redrawCellAsLive(pos);
-    }
+    };
 
     this.markCellDead = function(x, y) {
         var pos = game.setDead(x, y);
         board.redrawCellAsDead(pos);
-    }
+    };
 
     this.over = function() {
         this.stopLoop(false);
@@ -436,7 +439,7 @@ function GameInstance(view, args, benchmark) {
         }
         domBoard.over();
         generation = 1;
-    }
+    };
 
     // 100:62 - golden ratio
     var sizeX = args.sizeX || 100
@@ -481,20 +484,20 @@ var BaseBoard = function() {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.setCellSize(cellSize);
-    }
+    };
 
     this.activate = function() {
         this.baseEl.style.display = "block";
-    }
+    };
 
     this.deactivate = function() {
         this.baseEl.style.display = "none";
-    }
+    };
 
     this.over = function() {
         var parent = getId("board");
         parent.removeChild(this.baseEl);
-    }
+    };
 
     this._createBoard = function(tag, attrs) {
         var board = createLifeElem(tag, attrs || {})
@@ -503,20 +506,20 @@ var BaseBoard = function() {
         board.style.display = "none";
         parent.insertBefore(board, parent.firstChild);
         return board;
-    }
+    };
 
     this.switchTo = function(board) {
         this.deactivate();
         board.activate();
         return board;
-    }
+    };
 
     this.setCellSize = function(size) {
         this.cellSize = size;
         this.width = size.x * this.sizeX + this.sizeX + 1;
         this.height = size.y * this.sizeY + this.sizeY + 1;
-    }
-}
+    };
+};
 
 
 // draw a board on a huge tree of DOM elements
@@ -535,7 +538,7 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
     this.baseEl.style.height = this.height + "px";
 
     // the function takes a lot of cpu
-    this._fillBaseEl = function(board) {
+    this._fillBaseEl = function() {
         var width = this.cellSize.x + "px"
           , height = this.cellSize.y + "px"
           , y = 0, x = 0
@@ -558,7 +561,7 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
         }
 
         baseElIsFilled = true;
-    }
+    };
 
     // the function takes a lot of cpu
     this.changeCellSize = function(cellSize) {
@@ -580,7 +583,7 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
             cells[c].style.height = height;
             cells[c].style.width = width;
         }
-    }
+    };
 
     this.redraw = function(stateTable) {
         // we fill base element at actual first draw but not at init
@@ -592,7 +595,7 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
         for (var i = 0; i < cellCount; i++) {
             elTable[i].style.backgroundColor = stateTable[i] ? "black" : "white";
         }
-    }
+    };
 
     // the function takes a lot of cpu
     this.redrawDiff = function(diff) {
@@ -608,16 +611,16 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
         for (i = 0; i < newDeadLen; i++) {
             elTable[ newDead[i] ].style.backgroundColor = "white";
         }
-    }
+    };
 
     this.redrawCellAsLive = function(pos) {
         elTable[pos].style.backgroundColor = "black";
-    }
+    };
 
     this.redrawCellAsDead = function(pos) {
         elTable[pos].style.backgroundColor = "white";
-    }
-}
+    };
+};
 DOMBoard.prototype = new BaseBoard();
 
 
@@ -660,14 +663,14 @@ var CanvasBoard = function(sizeX, sizeY, cellSize) {
         cellSizeX = this.cellSize.x;
         cellSizeY = this.cellSize.y;
         cellMap = calcCellMap();
-    }
+    };
 
     this.redraw = function(stateTable) {
         for (var i = 0; i < cellCount; i++) {
             cx.fillStyle = stateTable[i] ? "black" : "white";
             cx.fillRect(cellMap[i].x, cellMap[i].y, cellSizeX, cellSizeY);
         }
-    }
+    };
 
     // the function takes a lot of cpu
     this.redrawDiff = function(diff) {
@@ -686,18 +689,18 @@ var CanvasBoard = function(sizeX, sizeY, cellSize) {
         for (i = 0; i < newDeadLen; i++) {
             cx.fillRect(cellMap[ newDead[i] ].x, cellMap[ newDead[i] ].y, cellSizeX, cellSizeY);
         }
-    }
+    };
 
     this.redrawCellAsLive = function(pos) {
         cx.fillStyle = "black";
         cx.fillRect(cellMap[pos].x, cellMap[pos].y, cellSizeX, cellSizeY);
-    }
+    };
 
     this.redrawCellAsDead = function(pos) {
         cx.fillStyle = "white";
         cx.fillRect(cellMap[pos].x, cellMap[pos].y, cellSizeX, cellSizeY);
-    }
-}
+    };
+};
 CanvasBoard.prototype = new BaseBoard();
 
 
@@ -719,7 +722,7 @@ var I18n = function() {
     }
 
     return _;
-}
+};
 I18n.fillPage = function(_) {
     function qsAll(query) {
         var id = query.split(" ")[0]
@@ -796,7 +799,7 @@ I18n.fillPage = function(_) {
 
     getId("lang-en").setAttribute("title", _.langEnTitle);
     getId("lang-uk").setAttribute("title", _.langUkTitle);
-}
+};
 
 
 var CookieStorage = function(view) {
@@ -869,7 +872,7 @@ var CookieStorage = function(view) {
         }
         myCookie = "lifegame="+myCookie+";expires="+new Date(0x7fffffff * 1000).toUTCString();
         document.cookie = myCookie;
-    }
+    };
 
     this.load = function() {
         var settingsArr = []
@@ -893,22 +896,24 @@ var CookieStorage = function(view) {
                 view.iBoardSize = { x: settingsArr[5], y: settingsArr[6] };
             }
         }
-    }
+    };
 
     this._fromStorage = [];
 
     this.isFromStorage = function(setting) {
         return this._fromStorage.indexOf(setting) >= 0 ? true : false;
-    }
+    };
 
     this.setFromStorage = function(setting) {
         this._fromStorage.push(setting);
-    }
-}
+    };
+};
 
 
 // do nothing when tests're running
-if (!getId("board") || !getId("panel")) return;
+if (!getId("board") || !getId("panel")) {
+    return;
+}
 
 var hasCanvas;
 if (typeof document.createElement("canvas").getContext != "function") {
@@ -931,7 +936,9 @@ function getTargetGeneration() {
     var target = view.paGenerationsVal
       , from = view.paFromVal;
 
-    if (!view.paSwitchVal) return null;
+    if (!view.paSwitchVal) {
+        return null;
+    }
 
     if (from == "current") {
         target += gi ? gi.getGeneration() : 1;
@@ -1066,7 +1073,7 @@ var startGame = life_benchmark.startGame = function(benchmark) {
     life_benchmark.game = gi;
 
     return gi;
-}
+};
 
 // user interaction with boards
 function assignCbsTo(gi) {
@@ -1101,13 +1108,13 @@ function assignCbsTo(gi) {
                 gi.markCellLive(x, y);
                 view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
             });
-        }
+        };
         elem.oncontextmenu = function(ev) {
             onmouse(elem, ev, function(x, y) {
                 gi.markCellDead(x, y);
                 view.iCellInfo = { state: "in", x: x, y: y, cellState: false };
             }, null, true);
-        }
+        };
         elem.onmouseenter = function() {
             elem.onmousemove = function(ev) {
                 onmouse(elem, ev, function(x, y) {
@@ -1118,13 +1125,13 @@ function assignCbsTo(gi) {
                     view.iCellInfo = { state: "border" };
                     view.mouseAboveState = { isActive: false };
                 });
-            }
-        }
+            };
+        };
         elem.onmouseleave = function() {
             elem.onmousemove = null;
             view.iCellInfo = { state: "out" };
             view.mouseAboveState = { isActive: false };
-        }
+        };
     });
 }
 
@@ -1387,7 +1394,7 @@ var view = {
   , set iBoardEngine(engineName) {
         this.iBoardEngineSpan.innerHTML = engineName;
     }
-}
+};
 
 
 var cookie = new CookieStorage(view);
