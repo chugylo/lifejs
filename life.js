@@ -119,10 +119,11 @@ life_benchmark = {
  * The abstract core of the game.
  */
 var game = {
-   sizeX: 0
+    sizeX: 0
   , sizeY: 0
-    // neighbors & state table are 1-dimensional arrays
-    // for make it awesome fast
+    // Neighbors & state table are 1-dimensional arrays
+    // for make it awesome fast.
+    // Indexes of these two match.
   , neighbors: []
   , stateTable: []
 
@@ -131,38 +132,65 @@ var game = {
   , init: function(sizeX, sizeY, initialFilling) {
         this.sizeX = sizeX, this.sizeY = sizeY;
 
-        this.fillCellsNeighbors();
         this.initStateTable(initialFilling);
-  }
+        this.fillCellsNeighbors();
+        this.countNeighbors();
+    }
 
     // explicit arguments and returning is for use only
     // when calling from a test suit
-  , fillCellsNeighbors: function(sizeX, sizeY) {
+  , fillCellsNeighbors: function(sizeXParam, sizeYParam) {
         var x = 0, y = 0
           , neighbors = []
-          , sizeX = typeof sizeX == "number" ? sizeX : this.sizeX
-          , sizeY = typeof sizeY == "number" ? sizeY : this.sizeY;
+          , self = this
+          , sizeX = typeof sizeXParam == "number" ? sizeXParam : this.sizeX
+          , sizeY = typeof sizeYParam == "number" ? sizeYParam : this.sizeY;
 
         this.neighbors = [];
 
         for (; x < sizeX; x++) {
             for (y = 0; y < sizeY; y++) {
-                neighbors = [ [x-1, y-1], [x, y-1], [x+1, y-1], [x-1, y], [x+1, y], [x-1, y+1], [x, y+1], [x+1, y+1] ];
-                // filter values which are out of the board
-                neighbors = neighbors.filter(function(neighbor) {
-                    return (neighbor[0] >= 0 && neighbor[0] < sizeX
-                        && neighbor[1] >= 0 && neighbor[1] < sizeY)
-                        ? true : false;
+                neighbors = [];
+                [
+                    this.XYToPosWithCheck(x - 1, y - 1)
+                  , this.XYToPosWithCheck(x,     y - 1)
+                  , this.XYToPosWithCheck(x + 1, y - 1)
+                  , this.XYToPosWithCheck(x - 1, y    )
+                  , this.XYToPosWithCheck(x + 1, y    )
+                  , this.XYToPosWithCheck(x - 1, y + 1)
+                  , this.XYToPosWithCheck(x,     y + 1)
+                  , this.XYToPosWithCheck(x + 1, y + 1)
+                ].forEach(function(pos) {
+                    if (pos !== false) {
+                        neighbors.push(self.stateTable[pos]);
+                    }
                 });
-                // convert coords to 1-dim index
-                neighbors = neighbors.map(function(neighbor) {
-                    return neighbor[0] * sizeY + neighbor[1];
-                });
+
                 this.neighbors.push(neighbors);
             }
         }
 
         return this.neighbors;
+    }
+
+  , countNeighbors: function() {
+        var pos = 0
+          , count = 0
+          , n = 0
+          , neighbor = null;
+
+        for (; pos < this.stateTable.length; pos++) {
+            count = 0;
+            neighbor = this.neighbors[pos];
+
+            for (n = 0; n < neighbor.length; n++) {
+                if (neighbor[n].c & 1) {
+                    count++;
+                }
+            }
+
+            this.stateTable[pos].c = (count << 1) | (this.stateTable[pos].c & 1);
+        }
     }
 
   , fill: function(fn) {
@@ -177,20 +205,26 @@ var game = {
     }
 
   , initStateTable: function(initialFilling) {
+        // Every cell is represented with a one number where:
+        // - least significant bit -- is live
+        // - other bits -- number of neighbors
+        //
+        // We wrap variables in object to make them referenceable.
         switch (initialFilling) {
             case "all-live":
                 this.fill(function() {
-                    return true;
+                    return { c: 1 };
                 });
                 break;
             case "all-dead":
                 this.fill(function() {
-                    return false;
+                    return { c: 0 };
                 });
                 break;
             default:
                 this.fill(function() {
-                    return Math.random() >= GOLDEN_RATIO_INVERSED ? true : false;
+                    return Math.random() >= GOLDEN_RATIO_INVERSED ?
+                        { c: 1 } : { c: 0 };
                 });
                 break;
         }
@@ -199,68 +233,98 @@ var game = {
     // the function takes a lot of cpu
   , recalcStateToDiff: function() {
         var stateDiff = { newLive: [], newDead: [] }
-          , activeNeighborsCount = 0
-          , pos = 0, i = 0
-          , cellCount = this.neighbors.length
-          , neighborsCount = 0;
+          , pos = 0
+          , cell = 0
+          , isLive = 0
+          , liveNeighborsCount = 0
+          , i = 0
+          , j = 0
+          , neighbor = null;
 
-        for (; pos < cellCount; pos++) {
-            for (i = 0, activeNeighborsCount = 0, neighborsCount = this.neighbors[pos].length; i < neighborsCount; i++) {
-                if (this.stateTable[ this.neighbors[pos][i] ]) {
-                    activeNeighborsCount++;
-                }
-            }
-
-            if (activeNeighborsCount != 2) {
-                if (activeNeighborsCount == 3) {
-                    if (!this.stateTable[pos]) {  // dead cell will return live
-                        stateDiff.newLive.push(pos);
-                    }
-                } else {
-                    if (this.stateTable[pos]) {  // live cell will return dead
-                        stateDiff.newDead.push(pos);
-                    }
+        // recalc cells to their new states
+        for (; pos < this.stateTable.length; pos++) {
+            cell = this.stateTable[pos].c;
+            if (cell) {  // live and/or has neighbor(s)
+                isLive = cell & 1;  // is the current cell alive?
+                liveNeighborsCount = cell >> 1;  // how many the current cell has neighbors?
+                // live cell will return dead
+                if (isLive && (liveNeighborsCount < 2 || liveNeighborsCount > 3)) {
+                    stateDiff.newDead.push(pos);
+                    cell ^= 1;  // change last significant bit, mean mark the cell dead
+                    this.stateTable[pos].c = cell;
+                // dead cell will return live
+                } else if (!isLive && liveNeighborsCount == 3) {
+                    stateDiff.newLive.push(pos);
+                    cell ^= 1;  // change last significant bit, mean mark the cell dead
+                    this.stateTable[pos].c = cell;
                 }
             }
         }
+
+        // recalc neighbors' live neighbor count
+        for (i = 0; i < stateDiff.newDead.length; i++) {
+            pos = stateDiff.newDead[i];
+            neighbor = this.neighbors[pos];
+
+            for (j = 0; j < neighbor.length; j++) {
+                // decrement on the second binary position
+                neighbor[j].c -= 2;
+            }
+        }
+        for (i = 0; i < stateDiff.newLive.length; i++) {
+            pos = stateDiff.newLive[i];
+            neighbor = this.neighbors[pos];
+
+            for (j = 0; j < neighbor.length; j++) {
+                // increment on the second binary position
+                neighbor[j].c += 2;
+            }
+        }
+
         return stateDiff;
     }
 
-  , applyDiffToStateTable: function(diff) {
-        var i = 0
-          , newLive = diff.newLive
-          , newDead = diff.newDead
-          , newLiveLen = newLive.length
-          , newDeadLen = newDead.length;
+  , setState: function(state, x, y) {
+        var pos = this.XYToPos(x, y)
+          , i = 0
+          , neighbor = this.neighbors[pos];
 
-        for (; i < newLiveLen; i++) {
-            this.stateTable[ newLive[i] ] = true;
+        this.stateTable[pos].c ^= 1;
+        for (; i < neighbor.length; i++) {
+            // increment or decrement on second binary position
+            neighbor[i].c += state ? 2 : -2;
         }
-        for (i = 0; i < newDeadLen; i++) {
-            this.stateTable[ newDead[i] ] = false;
-        }
+
+        return pos;
     }
 
   , setDead: function(x, y) {
-        var pos = this.XYToPos(x, y);
-        this.stateTable[pos] = false;
-
-        return pos;
+        return this.setState(false, x, y);
     }
 
   , setLive: function(x, y) {
-        var pos = this.XYToPos(x, y);
-        this.stateTable[pos] = true;
-
-        return pos;
+        return this.setState(true, x, y);
     }
 
   , getState: function(x, y) {
-        return this.stateTable[ this.XYToPos(x, y) ];
+        return this.stateTable[ this.XYToPos(x, y) ].c & 1;
     }
 
   , XYToPos: function(x, y) {
         return x * this.sizeY + y;
+    }
+
+  , XYToPosWithCheck: function(x, y) {
+        if (
+               x < 0
+            || y < 0
+            || x >= this.sizeX
+            || y >= this.sizeY
+        ) {
+            return false;
+        } else {
+            return x * this.sizeY + y;
+        }
     }
 };
 LifeGameAlias = game;  // make alias for testing purpose
@@ -283,9 +347,7 @@ function GameInstance(view, args, benchmark) {
     }
 
     function runOne() {
-        var diff = game.recalcStateToDiff();
-        game.applyDiffToStateTable(diff);
-        board.redrawDiff(diff);
+        board.redrawDiff(game.recalcStateToDiff());
         renewView();
     }
 
@@ -590,7 +652,7 @@ var DOMBoard = function(sizeX, sizeY, cellSize) {
         }
 
         for (var i = 0; i < cellCount; i++) {
-            elTable[i].style.backgroundColor = stateTable[i] ? "black" : "white";
+            elTable[i].style.backgroundColor = stateTable[i].c & 1 ? "black" : "white";
         }
     }
 
@@ -664,7 +726,7 @@ var CanvasBoard = function(sizeX, sizeY, cellSize) {
 
     this.redraw = function(stateTable) {
         for (var i = 0; i < cellCount; i++) {
-            cx.fillStyle = stateTable[i] ? "black" : "white";
+            cx.fillStyle = stateTable[i].c & 1 ? "black" : "white";
             cx.fillRect(cellMap[i].x, cellMap[i].y, cellSizeX, cellSizeY);
         }
     }
