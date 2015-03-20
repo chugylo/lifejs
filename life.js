@@ -236,7 +236,6 @@ var game = {
           , pos = 0
           , cell = 0
           , isLive = 0
-          , liveNeighborsCount = 0
           , i = 0
           , j = 0
           , neighbor = null;
@@ -246,14 +245,13 @@ var game = {
             cell = this.stateTable[pos].c;
             if (cell) {  // live and/or has neighbor(s)
                 isLive = cell & 1;  // is the current cell alive?
-                liveNeighborsCount = cell >> 1;  // how many the current cell has neighbors?
                 // live cell will return dead
-                if (isLive && (liveNeighborsCount < 2 || liveNeighborsCount > 3)) {
+                if (isLive && (cell < 5 || cell > 7)) {
                     stateDiff.newDead.push(pos);
                     cell ^= 1;  // change last significant bit, mean mark the cell dead
                     this.stateTable[pos].c = cell;
                 // dead cell will return live
-                } else if (!isLive && liveNeighborsCount == 3) {
+                } else if (cell == 6) {
                     stateDiff.newLive.push(pos);
                     cell ^= 1;  // change last significant bit, mean mark the cell dead
                     this.stateTable[pos].c = cell;
