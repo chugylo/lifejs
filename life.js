@@ -344,7 +344,7 @@ function GameInstance(view, args, benchmark) {
         view.cycleVal = false;
     }
 
-    function runOne() {
+    this.runOne = function() {
         board.redrawDiff(game.recalcStateToDiff());
         renewView();
     }
@@ -357,21 +357,13 @@ function GameInstance(view, args, benchmark) {
     }
 
     // must be called after .init()
-    this.runOne = runOne;
-
-    // must be called after .init()
     // newPeriod is a positive number or zero
     this.runCycle = function(newPeriod) {
         period = newPeriod === undefined ? period : newPeriod;
-        if (typeof pauseAfter == "number" && pauseAfter < generation + 1) {
-            renewViewAfterStop();
-            return;
-        }
-        var self = this;
-        runs = true;
-        interval = setInterval(function() {
+
+        function onTime() {
             if (pauseAfter === null || pauseAfter >= generation + 1) {
-                runOne();
+                self.runOne();
             } else {
                 self.stopLoop();
                 renewViewAfterStop();
@@ -379,7 +371,15 @@ function GameInstance(view, args, benchmark) {
                     self.clearPauseAfter();
                 }
             }
-        }, period);
+        }
+
+        if (typeof pauseAfter == "number" && pauseAfter < generation + 1) {
+            renewViewAfterStop();
+            return;
+        }
+        var self = this;
+        runs = true;
+        interval = setInterval(onTime, period);
     }
 
     // must be called after .init()
