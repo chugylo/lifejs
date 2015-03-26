@@ -27,6 +27,7 @@ LifeGameLang.en = {
   , piBoardSize: "Board Size: "
   , piCells: "cells"
   , piCellSize: "Cell Size: "
+  , piRules: "Rules: "
   , piBoardEngine: "Board Engine: "
   , pStep: "Period: "
   , pStepMs: "&#8201;ms"
@@ -45,6 +46,7 @@ LifeGameLang.en = {
   , pNewGame: "New Game"
   , pBoardSize: "Board Size: "
   , pFit: " Fit to window size"
+  , pRules: "Rules: "
   , pFilling: "Initial Filling: "
   , pGolden: "Random, using golden ratio"
   , pAllDead: "All dead"
@@ -56,6 +58,7 @@ LifeGameLang.en = {
   , pCanvasEngineTitle: "Quick, recommended"
   , pDOMEngineTitle: "Slow, not recommended"
   , pTip: "Click left mouse to make the cell live and click right to make it dead."
+        + "<p>Rules have format \"S/B\" where \"S\" stands for \"survival\" and \"B\" stands for \"birth\". Popular rules: 23/2nbsp;— classical game, 34/34, 23/36&nbsp;— HighLife."
   , pWhatsit: "The Game of Life is a cellular automaton, a zero-player game. The universe is a space divided into cells. Every generation is calculated out of the previous one by simple rules. More <a href=\"http://en.wikipedia.org/wiki/Conway%27s_Game_of_Life\" target=\"_blank\">on Wikipedia</a>."
 
   , rights: "All rights reserved."

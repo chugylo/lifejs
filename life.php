@@ -34,6 +34,7 @@
       <div id="info-period"><span></span></div>
       <div id="info-board-size"><span></span></div>
       <div id="info-cell-size"><span></span></div>
+      <div id="info-rules"><span></span></div>
       <div id="info-board-type"><span></span></div>
     </div>
 
@@ -62,6 +63,7 @@
       <h4></h4>
       <div class="panel-line"><label><input type="number" id="new-game-x" min="1" max="9999" value="100" placeholder="x" maxlength="4"></label>&#8201;&#215;&#8201;<label><input type="number" id="new-game-y" min="1" max="9999" value="62" placeholder="y" maxlength="4"></label></div>
       <div class="panel-line"><label><input type="checkbox" id="new-game-fit"></label></div>
+      <div class="panel-line"><label><input type="text" id="new-game-rules" maxlength="19" value="23/3"></label></div>
       <div class="panel-line"><label><select id="new-game-filling">
         <option value="golden" selected></option>
         <option value="all-dead"></option>

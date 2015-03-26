@@ -80,7 +80,7 @@ input, select {
   -webkit-border-radius: 3px;
           border-radius: 3px;
 }
-input[type="number"], select {
+input[type="number"], input[type="text"], select {
   padding: 2px 2px 2px 3px;
   border: 1px solid #333;
 }
@@ -157,6 +157,9 @@ option {
 #new-game-x, #new-game-y, #pa-generations {
   width: 55px;
 }
+#new-game-rules {
+  width: 170px;
+}
 #new-game-start {
   width: 150px;
 }
@@ -165,6 +168,9 @@ option {
 }
 #tip-panel {
   font-style: italic;
+}
+#tip-panel p {
+  margin-top: 5px;
 }
 #info-panel {
   float: right;

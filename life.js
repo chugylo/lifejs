@@ -127,11 +127,14 @@ var game = {
   , neighbors: []
   , stateTable: []
 
+  , rules: null
+
     // we need a slim and fast code in here and therefore don't mess with
     // prototypes and constructors
-  , init: function(sizeX, sizeY, initialFilling) {
+  , init: function(sizeX, sizeY, rules, initialFilling) {
         this.sizeX = sizeX, this.sizeY = sizeY;
 
+        this.prepareRules(rules);
         this.initStateTable(initialFilling);
         this.fillCellsNeighbors();
         this.countNeighbors();
@@ -230,38 +233,80 @@ var game = {
         }
     }
 
-    // the function takes a lot of cpu
-  , recalcStateToDiff: function() {
-        var stateDiff = { newLive: [], newDead: [] }
-          , pos = 0
-          , cell = 0
-          , isLive = 0
+
+  , prepareRules: function(rules) {
+        var survival
+          , willNotSurvive
+          , willBirth
+          , willNotSurviveLine
+          , willBirthLine
+          , js;
+
+        // `.indexOf()` needs explicit type
+        survival = rules.survival.map(function(val) {
+            return typeof val == "number" ? val : parseInt(val, 10);
+        });
+
+        willNotSurvive = [ 1, 3, 5, 7, 9, 11, 13, 15, 17 ].filter(function(val) {
+            return survival.indexOf(val >> 1) == -1;
+        });
+
+        willBirth = rules.birth.map(function(val) {
+            return val << 1;
+        });
+
+        if (willNotSurvive.length) {
+            willNotSurviveLine = willNotSurvive.map(function(val) {
+                return "cell == " + val;
+            }).join(" || ");
+        } else {  // every one survive
+            willNotSurviveLine = "false";
+        }
+
+        if (willBirth.length) {
+            willBirthLine = willBirth.map(function(val) {
+                return "cell == " + val;
+            }).join(" || ");
+        } else {  // no one birth
+            willBirthLine = "false";
+        }
+
+        // `recalcCells()` takes a lot of cpu!
+        js = "this.recalcCells = function() {\n"
+            +"    var pos, cell, diff = { newDead: [], newLive: [] };\n"
+            +"    for (pos = 0; pos < this.stateTable.length; pos++) {\n"
+            +"        cell = this.stateTable[pos].c;\n"
+            +"        if (cell) {\n" // cell is alive and/or has neighbor(s)
+            +"            if ("+willNotSurviveLine+") {\n"
+            +"                diff.newDead.push(pos);\n"
+            +"                cell ^= 1;\n"
+            +"                this.stateTable[pos].c = cell;\n"
+            +"            } else if ("+willBirthLine+") {\n"
+            +"                diff.newLive.push(pos);\n"
+            +"                cell ^= 1;\n"
+            +"                this.stateTable[pos].c = cell;\n"
+            +"            }\n"
+            +"        }\n"
+            +"    }\n"
+            +"    return diff;\n"
+            +"}\n";
+
+         eval(js);
+    }
+
+  , recalc: function() {
+        var diff
           , i = 0
           , j = 0
+          , pos = 0
           , neighbor = null;
 
         // recalc cells to their new states
-        for (; pos < this.stateTable.length; pos++) {
-            cell = this.stateTable[pos].c;
-            if (cell) {  // live and/or has neighbor(s)
-                isLive = cell & 1;  // is the current cell alive?
-                // live cell will return dead
-                if (isLive && (cell < 5 || cell > 7)) {
-                    stateDiff.newDead.push(pos);
-                    cell ^= 1;  // change last significant bit, mean mark the cell dead
-                    this.stateTable[pos].c = cell;
-                // dead cell will return live
-                } else if (cell == 6) {
-                    stateDiff.newLive.push(pos);
-                    cell ^= 1;  // change last significant bit, mean mark the cell dead
-                    this.stateTable[pos].c = cell;
-                }
-            }
-        }
+        diff = this.recalcCells(this.stateTable);
 
         // recalc neighbors' live neighbor count
-        for (i = 0; i < stateDiff.newDead.length; i++) {
-            pos = stateDiff.newDead[i];
+        for (i = 0; i < diff.newDead.length; i++) {
+            pos = diff.newDead[i];
             neighbor = this.neighbors[pos];
 
             for (j = 0; j < neighbor.length; j++) {
@@ -269,8 +314,8 @@ var game = {
                 neighbor[j].c -= 2;
             }
         }
-        for (i = 0; i < stateDiff.newLive.length; i++) {
-            pos = stateDiff.newLive[i];
+        for (i = 0; i < diff.newLive.length; i++) {
+            pos = diff.newLive[i];
             neighbor = this.neighbors[pos];
 
             for (j = 0; j < neighbor.length; j++) {
@@ -279,7 +324,7 @@ var game = {
             }
         }
 
-        return stateDiff;
+        return diff;
     }
 
   , setState: function(state, x, y) {
@@ -345,7 +390,7 @@ function GameInstance(view, args, benchmark) {
     }
 
     this.runOne = function() {
-        board.redrawDiff(game.recalcStateToDiff());
+        board.redrawDiff(game.recalc());
         renewView();
     }
 
@@ -504,6 +549,7 @@ function GameInstance(view, args, benchmark) {
       , cellSize = args.cellSize || { x: 7, y: 7 }
       , period = typeof args.period == "number" && args.period >= 0 ? args.period : 1000
       , hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas
+      , rules = args.rules || { survival: [ 2, 3 ], birth: [ 3 ] }
       , initialFilling = args.initialFilling || "golden"
       , canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null
       , domBoard = new DOMBoard(sizeX, sizeY, cellSize)
@@ -515,7 +561,7 @@ function GameInstance(view, args, benchmark) {
       , pauseFromCurrent = false
       , benchmarkTimestamp = null;
 
-    game.init(sizeX, sizeY, initialFilling);
+    game.init(sizeX, sizeY, rules, initialFilling);
 }
 
 
@@ -818,6 +864,7 @@ I18n.fillPage = function(_) {
     prependId("info-period", _.piPeriod);
     prependId("info-board-size", _.piBoardSize);
     prependId("info-cell-size", _.piCellSize);
+    prependId("info-rules", _.piRules);
     prependId("info-board-type", _.piBoardEngine);
     getId("cycle").value = _.pCycle;
     getId("one").value = _.pOne;
@@ -837,7 +884,8 @@ I18n.fillPage = function(_) {
     newGameLabels = qsAll("new-game-panel label");
     prepend(newGameLabels[0], _.pBoardSize);
     append(newGameLabels[2], _.pFit);
-    prepend(newGameLabels[3], _.pFilling);
+    prepend(newGameLabels[3], _.pRules);
+    prepend(newGameLabels[4], _.pFilling);
     fillingOptions = qsAll("new-game-filling option");
     fillingOptions[0].innerHTML = _.pGolden;
     fillingOptions[1].innerHTML = _.pAllDead;
@@ -860,6 +908,8 @@ I18n.fillPage = function(_) {
 
 
 var CookieStorage = function(view) {
+    // attach new elements to the end of `saveMap`, when upgrading,
+    // to preserve backward compatibility
     var saveMap = [
             "period"
           , "paSwitch"
@@ -871,6 +921,7 @@ var CookieStorage = function(view) {
           , "ngFit"
           , "ngFilling"
           , "engine"
+          , "ngRules"
         ]
       , loadMap = [
             function(v) {
@@ -906,7 +957,38 @@ var CookieStorage = function(view) {
                 view.engineVal = v;
                 view.iBoardEngine = v;
             }
+          , function(v) {
+                v = v || "23/3";  // default
+                view.ngRulesStrVal = v;
+                view.iRules = v;
+            }
         ];    
+
+    // we look for backward compatibility
+    function upgradeScheme(cookie) {
+        var oldLen = cookie.split("|").length
+          , newLen = saveMap.length
+          , diff = newLen - oldLen
+          , result = cookie
+          , i = 0
+
+        if (diff > 0) {
+            // wonder if name of cookie is defined but body (part after =) isn't
+            if (oldLen == 0) {
+                result = "";
+                for (; i < newLen - 1; i++) {
+                    result += "|";
+                }
+                return result;
+            }
+            for (; i < diff; i++) {
+                result += "|";
+            }
+            return result;
+        }
+
+        return result;
+    }
 
     this.save = function(key, value) {
         var myCookie = ""
@@ -914,10 +996,13 @@ var CookieStorage = function(view) {
           , parts = saveMap.length;
 
         document.cookie.split(";").forEach(function(cookie) {
-            var cookieParts = cookie.replace(/^\s+|\s+$/g, "").split("=");
+            var cookieParts = cookie.replace(/^\s+|\s+$/g, "").split("=")
+              , upgradedCookie;
+
             if (cookieParts[0] == "lifegame") {
-                myCookie = cookieParts[1].split("|").map(function(current, index) {
-                    return saveMap[index] == key ? value : current;
+                upgradedCookie = upgradeScheme(cookieParts[1]);
+                myCookie = upgradedCookie.split("|").map(function(current, index) {
+                    return saveMap[index] == key && value !== null ? value : current;
                 }).join("|");
             }
         });
@@ -931,9 +1016,11 @@ var CookieStorage = function(view) {
         document.cookie = myCookie;
     }
 
-    this.load = function() {
+    this.load = function(setting) {
         var settingsArr = []
           , cookieParts = []
+          , settingInd = -1
+          , result = ""
           , i = 0;
 
         document.cookie.split(";").forEach(function(cookie) {
@@ -943,15 +1030,36 @@ var CookieStorage = function(view) {
             }
         });
         if (settingsArr.length) {
+
+            // load and return only one setting
+            // do not call the function in `loadMap`
+            if (setting) {
+                settingInd = saveMap.indexOf(setting);
+                if (settingInd >= 0) {
+                    if (result = settingsArr[settingInd]) {
+                        this._setIsFromStorage(setting);
+                        return result;
+                    } else {
+                        return null;
+                    }
+                } else {
+                    return null;
+                }
+            }
+
             for (i = settingsArr.length; i--;) {
                 if (settingsArr[i].length) {
                     loadMap[i]( settingsArr[i] );
-                    this.setFromStorage( saveMap[i] );
+                    this._setIsFromStorage( saveMap[i] );
                 }
             }
-            if (settingsArr[5].length && settingsArr[6].length) {
-                view.iBoardSize = { x: settingsArr[5], y: settingsArr[6] };
-            }
+
+            // in case of index is undefined we catch and do nothing
+            try {
+                if (settingsArr[5].length && settingsArr[6].length) {
+                    view.iBoardSize = { x: settingsArr[5], y: settingsArr[6] };
+                }
+            } catch (e) {}
         }
     }
 
@@ -961,7 +1069,7 @@ var CookieStorage = function(view) {
         return this._fromStorage.indexOf(setting) >= 0 ? true : false;
     }
 
-    this.setFromStorage = function(setting) {
+    this._setIsFromStorage = function(setting) {
         this._fromStorage.push(setting);
     }
 }
@@ -1017,6 +1125,14 @@ function calcOptimalBoardSize() {
     y = Math.round(x * GOLDEN_RATIO_INVERSED);
 
     return { x: x, y: y };
+}
+
+function convertRulesToArray(rulesStr) {
+    if (!rulesStr) {
+        return null;
+    }
+    var rules = rulesStr.split("/");
+    return { survival: rules[0].split(""), birth: rules[1].split("") };
 }
 
 // start a new game in the beginning or
@@ -1108,18 +1224,25 @@ var startGame = life_benchmark.startGame = function(benchmark) {
 
     view.iCellSize = cellSize.x;
 
-        options.initialFilling = view.ngFillingVal;
-        options.boardType = view.engineVal;
-        options.hasCanvas = hasCanvas;
-        options.pauseAfter = benchmark ? 251 : getTargetGeneration();
-        options.cellSize = cellSize;
+    options.initialFilling = view.ngFillingVal;
+    options.boardType = view.engineVal;
+    options.hasCanvas = hasCanvas;
+    options.pauseAfter = benchmark ? 251 : getTargetGeneration();
+    options.cellSize = cellSize;
 
-        gi = new GameInstance(view, options, benchmark);
-        gi.init();
-        assignCbsTo(gi);
-        if (view.cycleVal || fitWindow || benchmark) {
-            gi.runCycle();
-        }
+    // try getting rules from the form
+    options.rules = view.ngRulesVal;
+    // try getting rules from cookies
+    if (!options.rules) {
+        options.rules = convertRulesToArray(cookie.load("ngRules"));
+    }
+
+    gi = new GameInstance(view, options, benchmark);
+    gi.init();
+    assignCbsTo(gi);
+    if (view.cycleVal || fitWindow || benchmark) {
+        gi.runCycle();
+    }
 
     view.iBoardSize = gi.getBoardSize();
 
@@ -1211,15 +1334,17 @@ var view = {
   , ngXInput:           getId("new-game-x")
   , ngYInput:           getId("new-game-y")
   , ngFitInput:         getId("new-game-fit")
+  , ngRules:            getId("new-game-rules")
   , ngFilling:          getId("new-game-filling")
   , ngStartInput:       getId("new-game-start")
-  , iStatusSpan:      qs("#info-status span")
-  , iGenerationSpan:  qs("#info-generation span")
-  , iCellInfoSpan:    qs("#info-cell-info span")
-  , iBoardSizeSpan:   qs("#info-board-size span")
-  , iCellSizeSpan:    qs("#info-cell-size span")
-  , iPeriodSpan:       qs("#info-period span")
-  , iBoardEngineSpan: qs("#info-board-type span")
+  , iStatusSpan:        qs("#info-status span")
+  , iGenerationSpan:    qs("#info-generation span")
+  , iCellInfoSpan:      qs("#info-cell-info span")
+  , iBoardSizeSpan:     qs("#info-board-size span")
+  , iCellSizeSpan:      qs("#info-cell-size span")
+  , iPeriodSpan:        qs("#info-period span")
+  , iRulesSpan:         qs("#info-rules span")
+  , iBoardEngineSpan:   qs("#info-board-type span")
 
     // cached position of the mouse for renew Cell Info at every board redraw
   , mouseAboveState: { isActive: false }
@@ -1351,6 +1476,42 @@ var view = {
         this.ngFitInput.checked = value;
     }
 
+  , _rulesFormat: /^\s*([0-8]{0,9})\s*\/\s*([0-8]{0,9})\s*$/
+
+  , get ngRulesVal() {
+        var result = { survival: [], birth: [] }
+          , parsed = this._rulesFormat.exec(this.ngRules.value)
+          , i = 0;
+
+        if (parsed) {
+            // filter for unique values and sort
+            result.survival = parsed[1].split("").filter(function(val, ind, self) {
+                return self.indexOf(val) == ind;
+            }).sort();
+            result.birth = parsed[2].split("").filter(function(val, ind, self) {
+                return self.indexOf(val) == ind;
+            }).sort();
+            return result;
+        } else {
+            return null;
+        }
+    }
+
+  , get ngRulesStrVal() {
+        var rules = this.ngRulesVal;
+
+        return rules !== null ?
+            rules.survival.join("") +"/"+ rules.birth.join("") : null;
+    }
+
+  , set ngRulesVal(value) {
+        this.ngRules.value = value.survival.join("") +"/"+ value.birth.join("");
+    }
+
+  , set ngRulesStrVal(value) {
+        this.ngRules.value = value;
+    }
+
   , get ngFillingVal() {
         return this.ngFilling.value;
     }
@@ -1442,6 +1603,10 @@ var view = {
   , set iPeriod(period) {
         var gps = 1000 / period;
         this.iPeriodSpan.innerHTML = period+"&#8201;"+_.piMs+" ("+gps.toFixed(2)+"&#8201;"+_.piGps+")";
+    }
+
+  , set iRules(rules) {
+        this.iRulesSpan.innerHTML = rules;
     }
 
   , set iBoardEngine(engineName) {
@@ -1558,6 +1723,24 @@ view.ngFitInput.addEventListener("change", function() {
         view.enableNgSize();
     }
 }, false);
+
+view.ngRules.addEventListener("change", function() {
+    var rulesStr = view.ngRulesStrVal
+      , rulesFromCookie;
+
+    if (rulesStr) {
+        cookie.save("ngRules", rulesStr);
+        view.iRules = rulesStr;
+        view.ngRulesStrVal = rulesStr;  // feed back cleaned value
+    } else if (rulesFromCookie = cookie.load("ngRules")) {
+        view.iRules = rulesFromCookie;
+        view.ngRulesStrVal = rulesFromCookie;
+    } else {
+        // default
+        view.iRules = "23/3";
+        view.ngRulesStrVal = "23/3";
+    }
+});
 
 view.ngFilling.addEventListener("change", function() {
     cookie.save("ngFilling", view.ngFillingVal);
