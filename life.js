@@ -132,7 +132,8 @@ var game = {
     // we need a slim and fast code in here and therefore don't mess with
     // prototypes and constructors
   , init: function(sizeX, sizeY, rules, initialFilling) {
-        this.sizeX = sizeX, this.sizeY = sizeY;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
 
         this.prepareRules(rules);
         this.initStateTable(initialFilling);
@@ -145,9 +146,14 @@ var game = {
   , fillCellsNeighbors: function(sizeXParam, sizeYParam) {
         var x = 0, y = 0
           , neighbors = []
-          , self = this
           , sizeX = typeof sizeXParam == "number" ? sizeXParam : this.sizeX
           , sizeY = typeof sizeYParam == "number" ? sizeYParam : this.sizeY;
+
+        function filterOutOfRange(pos) {
+            if (pos !== false) {
+                neighbors.push(this.stateTable[pos]);
+            }
+        }
 
         this.neighbors = [];
 
@@ -163,11 +169,7 @@ var game = {
                   , this.XYToPosWithCheck(x - 1, y + 1)
                   , this.XYToPosWithCheck(x,     y + 1)
                   , this.XYToPosWithCheck(x + 1, y + 1)
-                ].forEach(function(pos) {
-                    if (pos !== false) {
-                        neighbors.push(self.stateTable[pos]);
-                    }
-                });
+                ].forEach(filterOutOfRange, this);
 
                 this.neighbors.push(neighbors);
             }
@@ -290,7 +292,7 @@ var game = {
             +"    return diff;\n"
             +"}\n";
 
-         eval(js);
+         eval(js);  // jshint ignore: line
     }
 
   , recalc: function() {
@@ -391,14 +393,14 @@ function GameInstance(view, args, benchmark) {
     this.runOne = function() {
         board.redrawDiff(game.recalc());
         renewView();
-    }
+    };
 
     this.init = function () {
         benchmarkTimestamp = new Date;
         board.activate();
         board.redraw(game.stateTable);
         renewView();
-    }
+    };
 
     // must be called after .init()
     // newPeriod is a positive number or zero
@@ -424,7 +426,7 @@ function GameInstance(view, args, benchmark) {
         var self = this;
         runs = true;
         interval = setInterval(onTime, period);
-    }
+    };
 
     // must be called after .init()
     this.stopLoop = function(printBenchmarkParam) {
@@ -971,11 +973,11 @@ var CookieStorage = function(view) {
           , newLen = saveMap.length
           , diff = newLen - oldLen
           , result = cookie
-          , i = 0
+          , i = 0;
 
         if (diff > 0) {
             // wonder if name of cookie is defined but body (part after =) isn't
-            if (oldLen == 0) {
+            if (oldLen === 0) {
                 result = "";
                 for (; i < newLen - 1; i++) {
                     result += "|";
@@ -1037,7 +1039,8 @@ var CookieStorage = function(view) {
             if (setting) {
                 settingInd = saveMap.indexOf(setting);
                 if (settingInd >= 0) {
-                    if (result = settingsArr[settingInd]) {
+                    result = settingsArr[settingInd];
+                    if (result) {
                         this._setIsFromStorage(setting);
                         return result;
                     } else {
@@ -1488,8 +1491,7 @@ var view = {
 
   , get ngRulesVal() {
         var result = { survival: [], birth: [] }
-          , parsed = this._rulesFormat.exec(this.ngRules.value)
-          , i = 0;
+          , parsed = this._rulesFormat.exec(this.ngRules.value);
 
         if (parsed) {
             // filter for unique values and sort
@@ -1734,13 +1736,13 @@ view.ngFitInput.addEventListener("change", function() {
 
 view.ngRules.addEventListener("change", function() {
     var rulesStr = view.ngRulesStrVal
-      , rulesFromCookie;
+      , rulesFromCookie = cookie.load("ngRules");
 
     if (rulesStr) {
         cookie.save("ngRules", rulesStr);
         view.iRules = rulesStr;
         view.ngRulesStrVal = rulesStr;  // feed back cleaned value
-    } else if (rulesFromCookie = cookie.load("ngRules")) {
+    } else if (rulesFromCookie) {
         view.iRules = rulesFromCookie;
         view.ngRulesStrVal = rulesFromCookie;
     } else {
