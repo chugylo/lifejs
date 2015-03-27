@@ -248,10 +248,12 @@ var game = {
             return typeof val == "number" ? val : parseInt(val, 10);
         });
 
+        // we'll always get a list of pure numbers and therefore `eval()` will be safe
         willNotSurvive = [ 1, 3, 5, 7, 9, 11, 13, 15, 17 ].filter(function(val) {
-            return survival.indexOf(val >> 1) == -1;
+            return survival.indexOf(val >> 1) === -1;
         });
 
+        // << operator always return number and therefore `eval()` will be safe
         willBirth = rules.birth.map(function(val) {
             return val << 1;
         });
