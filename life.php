@@ -82,7 +82,7 @@
     <div id="whatsit-panel"></div>
   </div>
 
-  <div id="footer">&copy; 2014, chugylo <br></div>
+  <div id="footer">&copy; 2014&ndash;2015, chugylo <br></div>
 
   <ul id="lang">
     <li id="lang-en"><?php if ('en' != $lang): ?><a href="?en">eng</a><?php else: ?>eng<?php endif; ?></li>

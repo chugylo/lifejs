@@ -59,4 +59,4 @@ window.onload = function(ev) {
             addScript("test.js");
         }
     }
-}
+};

@@ -189,11 +189,12 @@ option {
 
   /* Footer */
 
-#footer {
+#footer, #footer a {
   text-align: center;
   font-family: "Droid Sans", Arial, sans;
-  font-size: 11px;
+  font-size: 10px;
   margin-bottom: 15px;
+  color: #333333;
 }
 
  /* Lang Panel */
