@@ -1061,6 +1061,9 @@ var CookieStorage = function(view) {
                     view.iBoardSize = { x: settingsArr[5], y: settingsArr[6] };
                 }
             } catch (e) {}
+
+            // set up rules anyway
+            loadMap[10]( settingsArr[10] );
         }
     };
 
