@@ -18,9 +18,9 @@ window.onload = function(ev) {
         || typeof Array.prototype.forEach != "function"
         || typeof Array.prototype.indexOf != "function"
         || typeof Event.prototype.preventDefault != "function"
-        || typeof document.querySelector != "function"
-        || typeof document.querySelectorAll != "function"
-        || typeof Function.bind != "function"
+        || typeof Document.prototype.querySelector != "function"
+        || typeof Document.prototype.querySelectorAll != "function"
+        || typeof Function.prototype.bind != "function"
         || !ev
         // check getters
         || (function() {

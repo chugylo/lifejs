@@ -1,4 +1,8 @@
-LifeGameLang.en = {
+var LifeGame = (function(module) {
+
+module.lang = module.lang || {};
+
+module.lang.en = {
     title: "The Life Game"
   , header: "The Life Game"
 
@@ -66,3 +70,7 @@ LifeGameLang.en = {
   , langEnTitle: "English"
   , langUkTitle: "Ukrainian (Українська мова)"
 }
+
+return module;
+
+})(LifeGame || {});

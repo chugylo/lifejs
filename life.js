@@ -27,10 +27,8 @@
 */
 
 
-var LifeGameAlias;
-
-
-(function() {
+// global var
+var LifeGame = (function(module) {
 
 // shortcuts
 var getId = document.getElementById.bind(document)
@@ -44,13 +42,12 @@ var GOLDEN_RATIO_INVERSED = 0.6180341996797237;
 
 /*
  * Benchmark.
- * Type `life_benchmark.run()` in the browser console.
+ * Type `LifeGame.benchmark.run()` in the browser console.
  * Don't touch controls while benchmark is running.
  * It will perform 10 times for 250 generations and print result.
  */
 
-// global var
-life_benchmark = {
+var benchmark = {
     startGame: null
   , game: null
   , push: function(ms) {
@@ -373,13 +370,12 @@ var game = {
         }
     }
 };
-LifeGameAlias = game;  // make alias for testing purpose
 
 
 /*
  * Make current instance of the game.
  */
-function GameInstance(view, args, benchmark) {
+function GameInstance(view, args, isBenchmark) {
 
     function renewView() {
         generation++;
@@ -411,21 +407,21 @@ function GameInstance(view, args, benchmark) {
 
         function onTime() {
             if (pauseAfter === null || pauseAfter >= generation + 1) {
-                self.runOne();
+                this.runOne();
             } else {
-                self.stopLoop();
+                this.stopLoop();
                 renewViewAfterStop();
                 if (pauseFromCurrent) {
-                    self.clearPauseAfter();
+                    this.clearPauseAfter();
                 }
             }
         }
+        onTime = onTime.bind(this);
 
         if (typeof pauseAfter == "number" && pauseAfter < generation + 1) {
             renewViewAfterStop();
             return;
         }
-        var self = this;
         runs = true;
         interval = setInterval(onTime, period);
     };
@@ -434,8 +430,8 @@ function GameInstance(view, args, benchmark) {
     this.stopLoop = function(printBenchmarkParam) {
         var printBenchmark = (printBenchmarkParam || printBenchmarkParam === undefined) ? true : false;
 
-        if (benchmark && printBenchmark) {
-            life_benchmark.push(new Date - benchmarkTimestamp);
+        if (isBenchmark && printBenchmark) {
+            benchmark.push(new Date - benchmarkTimestamp);
         }
 
         runs = false;
@@ -818,14 +814,14 @@ var I18n = function() {
       , key = ""
       , line = "";
 
-    if (!LifeGameLang.en) {
+    if (!LifeGame.lang.en) {
         createLifeElem("div", { className: "bad-lang", innerHTML: "ERROR: Can't load language! Try to reload the page." }, true);
         throw new Error();
     }
 
     // standard language is always English
-    for (key in LifeGameLang.en) {
-        line = LifeGameLang[lang][key] ? LifeGameLang[lang][key] : LifeGameLang.en[key];
+    for (key in LifeGame.lang.en) {
+        line = LifeGame.lang[lang][key] ? LifeGame.lang[lang][key] : LifeGame.lang.en[key];
         _[key] = line;
     }
 
@@ -1086,7 +1082,9 @@ var CookieStorage = function(view) {
 
 // do nothing when tests're running
 if (!getId("board") || !getId("panel")) {
-    return;
+    return {
+        game: game
+    };
 }
 
 var hasCanvas;
@@ -1151,7 +1149,7 @@ function convertRulesToArray(rulesStr) {
 // start a new game in the beginning or
 // at the clicking `Start new game` button or
 // at the benchmark run
-var startGame = life_benchmark.startGame = function(benchmark) {
+var startGame = benchmark.startGame = function(isBenchmark) {
     var options = {}
       , board = getId("board")
       , cellC = 0
@@ -1231,7 +1229,7 @@ var startGame = life_benchmark.startGame = function(benchmark) {
         options.period = view.periodVal !== null ? view.periodVal : gi.getPeriod();
     }
 
-        if (benchmark) {
+        if (isBenchmark) {
             options.period = 0;
         }
 
@@ -1240,7 +1238,7 @@ var startGame = life_benchmark.startGame = function(benchmark) {
     options.initialFilling = view.ngFillingVal;
     options.boardType = view.engineVal;
     options.hasCanvas = hasCanvas;
-    options.pauseAfter = benchmark ? 251 : getTargetGeneration();
+    options.pauseAfter = isBenchmark ? 251 : getTargetGeneration();
     options.cellSize = cellSize;
 
     // try getting rules from the form
@@ -1250,16 +1248,16 @@ var startGame = life_benchmark.startGame = function(benchmark) {
         options.rules = convertRulesToArray(cookie.load("ngRules"));
     }
 
-    gi = new GameInstance(view, options, benchmark);
+    gi = new GameInstance(view, options, isBenchmark);
     gi.init();
     assignCbsTo(gi);
-    if (view.cycleVal || fitWindow || benchmark) {
+    if (view.cycleVal || fitWindow || isBenchmark) {
         gi.runCycle();
     }
 
     view.iBoardSize = gi.getBoardSize();
 
-    life_benchmark.game = gi;
+    benchmark.game = gi;
 
     return gi;
 };
@@ -1767,4 +1765,9 @@ view.ngStartInput.addEventListener("click", function() {
     }
 }, false);
 
-})();
+
+module.benchmark = benchmark;
+
+return module;
+
+})(LifeGame || {});

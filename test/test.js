@@ -6,7 +6,7 @@
 // :(
 var LIFE = setInterval(function() {
 	try {
-		defineTests(LifeGameAlias);
+		defineTests(LifeGame.game);
 		clearInterval(LIFE);
 	}
 	catch(e) {}
