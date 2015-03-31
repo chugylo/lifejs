@@ -48,31 +48,29 @@ var GOLDEN_RATIO_INVERSED = 0.6180341996797237;
  */
 
 var benchmark = {
-    startGame: null
-  , game: null
-  , push: function(ms) {
+    // startGame: null
+  // , game: null
+    push: function(ms) {
         this._list.push(250 / (ms / 1000));
         this._repeatCount++;
         console.log(this._repeatCount+"/"+this._repeatCountLim+" times repeated");
         this._time();
     }
   , run: function() {
-        if (this.startGame) {  // already defined
-            // clean up after previous run
-            this._list = [];
-            this._repeatCount = 0;
+        // clean up after previous run
+        this._list = [];
+        this._repeatCount = 0;
 
-            console.log("Starting...");
-            this._time();  // for first time
-        }
+        console.log("Starting...");
+        this._time();  // for first time
     }
   , _repeatCount: 0
   , _repeatCountLim: 10
   , _list: []
   , _time: function() {
         if (this._repeatCount < this._repeatCountLim) {
-            this.game.over();
-            this.startGame(true);
+            gi.over();
+            gi = startGame(makeOptions(true), true);
         } else {
             this._printResults();
         }
@@ -544,21 +542,20 @@ function GameInstance(view, args, isBenchmark) {
         generation = 1;
     };
 
-    // 100:62 - golden ratio
-    var sizeX = args.sizeX || 100
-      , sizeY = args.sizeY || 62
-      , cellSize = args.cellSize || { x: 7, y: 7 }
-      , period = typeof args.period == "number" && args.period >= 0 ? args.period : 1000
-      , hasCanvas = args.hasCanvas === undefined ? true : args.hasCanvas
-      , rules = args.rules || { survival: [ 2, 3 ], birth: [ 3 ] }
-      , initialFilling = args.initialFilling || "golden"
-      , canvasBoard = hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null
+    var sizeX = args.sizeX
+      , sizeY = args.sizeY
+      , cellSize = { x: args.cellSize, y: args.cellSize }
+      , period = args.period
+      , hasCanvas = args.hasCanvas
+      , rules = args.rules
+      , initialFilling = args.initialFilling
+      , canvasBoard = args.hasCanvas ? new CanvasBoard(sizeX, sizeY, cellSize) : null
       , domBoard = new DOMBoard(sizeX, sizeY, cellSize)
       , board = !hasCanvas ? domBoard : args.boardType === "DOM" ? domBoard : canvasBoard
       , interval = 0
       , runs = false
       , generation = 0
-      , pauseAfter = args.pauseAfter || null
+      , pauseAfter = args.pauseAfter
       , pauseFromCurrent = false
       , benchmarkTimestamp = null;
 
@@ -1118,73 +1115,75 @@ function getTargetGeneration() {
     return target;
 }
 
-function calcOptimalBoardSize() {
-    var
-        // cell sizes + cell border sizes (1px every internal + 2px external) + board border sizes (2px)
-        challengerWidth = view.changeSizeVal + 2 + 2
-      , rect = document.documentElement.getBoundingClientRect()
-      , left = rect.left
-      , right = rect.right
-      , targetWidth = (Math.abs(left)+right) * GOLDEN_RATIO_INVERSED
-      , oneCellWidth = view.changeSizeVal + 1
-      , x = 1, y = 0;
-
-    while (challengerWidth - oneCellWidth / 2 < targetWidth) {
-        challengerWidth += oneCellWidth;
-        x++;
-    }
-    y = Math.round(x * GOLDEN_RATIO_INVERSED);
-
-    return { x: x, y: y };
-}
-
-function convertRulesToArray(rulesStr) {
-    if (!rulesStr) {
-        return null;
-    }
-    var rules = rulesStr.split("/");
-    return { survival: rules[0].split(""), birth: rules[1].split("") };
-}
-
-// start a new game in the beginning or
-// at the clicking `Start new game` button or
-// at the benchmark run
-var startGame = benchmark.startGame = function(isBenchmark) {
+function makeOptions(asBenchmark) {
     var options = {}
       , board = getId("board")
-      , cellC = 0
-      , gameCellC = 0
-      , hugeBoardLim = 50000
-      , cellSize = { x: view.changeSizeVal, y: view.changeSizeVal }
-      , optimalBoardSize = {};
+      , hugeBoardLim = 50000;
 
-    if (view.ngFitVal) {
-        fitWindow = true;
+    function calcOptimalBoardSize() {
+        var
+            // cell sizes + cell border sizes (1px every internal + 2px external) + board border sizes (2px)
+            challengerWidth = view.changeSizeVal + 2 + 2
+          , rect = document.documentElement.getBoundingClientRect()
+          , left = rect.left
+          , right = rect.right
+          , targetWidth = (Math.abs(left)+right) * GOLDEN_RATIO_INVERSED
+          , oneCellWidth = view.changeSizeVal + 1
+          , x = 1, y = 0;
+
+        while (challengerWidth - oneCellWidth / 2 < targetWidth) {
+            challengerWidth += oneCellWidth;
+            x++;
+        }
+        y = Math.round(x * GOLDEN_RATIO_INVERSED);
+
+        return { x: x, y: y };
+    }
+
+    function convertRulesToArray(rulesStr) {
+        if (!rulesStr) {
+            return null;
+        }
+        var rules = rulesStr.split("/");
+        return { survival: rules[0].split(""), birth: rules[1].split("") };
+    }
+
+    function fitBoardSize() {
+        // we ignore any form and cookie data on using `Fit to window`
+
+        var clientWidth, clientHeight, paddingLeft, paddingTop;
 
         // we must style the page before getting its size
         document.body.style.overflow = "hidden";
 
-        var clientWidth = document.documentElement.clientWidth
-          , clientHeight = document.documentElement.clientHeight
-          , paddingLeft = Math.floor((clientWidth - 3) % (cellSize.x + 1) / 2)
-          , paddingTop = Math.floor((clientHeight - 3) % (cellSize.y + 1) / 2);
+        clientWidth = document.documentElement.clientWidth;
+        clientHeight = document.documentElement.clientHeight;
+        paddingLeft = Math.floor((clientWidth - 3) % (options.cellSize + 1) / 2);
+        paddingTop = Math.floor((clientHeight - 3) % (options.cellSize + 1) / 2);
 
         board.style.paddingLeft = paddingLeft+"px";
         board.style.paddingTop = paddingTop+"px";
         
-        options.sizeX = Math.floor((clientWidth - 3) / (cellSize.x + 1));
-        options.sizeY = Math.floor((clientHeight - 3) / (cellSize.y + 1));
+        options.sizeX = Math.floor((clientWidth - 3) / (options.cellSize + 1));
+        options.sizeY = Math.floor((clientHeight - 3) / (options.cellSize + 1));
+
+        alert(_.fitAlert);
 
         view.cycleVal = true;
         view.iStatus = true;
+    }
 
-        alert(_.fitAlert);
-    } else {
-        fitWindow = false;
+    function boardSize() {
+        // 100:62 -- golden ratio
 
-        unFitWindow();
+        var optimalBoardSize
+          , cellCount;
 
-        if (!gi) {
+        if (view.ngFitVal) {
+            fitBoardSize();
+            return;
+        } else if (this.firstRun) {
+            // if cookies are empty, calculate an optimal board size
             if (!cookie.isFromStorage("ngX") || !cookie.isFromStorage("ngY")) {
                 optimalBoardSize = calcOptimalBoardSize();
                 cookie.save("ngX", optimalBoardSize.x);
@@ -1193,65 +1192,53 @@ var startGame = benchmark.startGame = function(isBenchmark) {
             if (!cookie.isFromStorage("ngX")) {
                 options.sizeX = view.ngXVal = optimalBoardSize.x;
             } else {
-                options.sizeX = view.ngXVal;
+                options.sizeX = view.ngXVal || 100;
             }
             if (!cookie.isFromStorage("ngY")) {
                 options.sizeY = view.ngYVal = optimalBoardSize.y;
             } else {
-                options.sizeY = view.ngYVal;
+                options.sizeY = view.ngYVal || 62;
             }
         } else {
-            options.sizeX = view.ngXVal || gi.getBoardSize().x;
-            options.sizeY = view.ngYVal || gi.getBoardSize().y;
+            options.sizeX = view.ngXVal || cookie.load("ngX") || 100;
+            options.sizeY = view.ngYVal || cookie.load("ngY") || 62;
         }
-    }
 
-    cellC = options.sizeX * options.sizeY;
-    if (cellC > hugeBoardLim) {
-        if (!confirm(_.hugeConfirm1+cellC+_.hugeConfirm2)) {
-            if (gi) {
-                options.sizeX = gi.getBoardSize().x;
-                options.sizeY = gi.getBoardSize().y;
-
-                gameCellC = options.sizeX * options.sizeY;
-                if (gameCellC > hugeBoardLim) {
-                    options = {};
-                }
-            } else {
-                options = {};
+        cellCount = options.sizeX * options.sizeY;
+        if (cellCount > hugeBoardLim) {
+            if (!confirm(_.hugeConfirm1+cellCount+_.hugeConfirm2)) {
+                optimalBoardSize = calcOptimalBoardSize();
+                cookie.save("ngX", optimalBoardSize.x);
+                cookie.save("ngY", optimalBoardSize.y);
+                options.sizeX = view.ngXVal = optimalBoardSize.x;
+                options.sizeY = view.ngYVal = optimalBoardSize.y;
             }
         }
     }
 
-    if (!gi) {
-        options.period = view.periodVal;
-    } else {
-        options.period = view.periodVal !== null ? view.periodVal : gi.getPeriod();
-    }
-
-        if (isBenchmark) {
-            options.period = 0;
-        }
-
-    view.iCellSize = cellSize.x;
-
-    options.initialFilling = view.ngFillingVal;
+    options.cellSize = view.changeSizeVal || 7;
+    boardSize();
     options.boardType = view.engineVal;
+    options.period = asBenchmark ?
+        0 : view.periodVal || cookie.load("period") || 1000;
+    options.initialFilling = view.ngFillingVal;
     options.hasCanvas = hasCanvas;
-    options.pauseAfter = isBenchmark ? 251 : getTargetGeneration();
-    options.cellSize = cellSize;
+    options.pauseAfter = asBenchmark ?
+        251 : getTargetGeneration();
+    options.rules = view.ngRulesVal || convertRulesToArray(cookie.load("ngRules")) || "23/3";
 
-    // try getting rules from the form
-    options.rules = view.ngRulesVal;
-    // try getting rules from cookies
-    if (!options.rules) {
-        options.rules = convertRulesToArray(cookie.load("ngRules"));
-    }
+    makeOptions.prototype.firstRun = false;
 
-    gi = new GameInstance(view, options, isBenchmark);
+    return options;
+}
+makeOptions.prototype.firstRun = true;
+
+function startGame(options, asBenchmark) {
+    var gi = new GameInstance(view, options, asBenchmark);
+
     gi.init();
     assignCbsTo(gi);
-    if (view.cycleVal || fitWindow || isBenchmark) {
+    if (view.cycleVal || view.ngFitVal || asBenchmark) {
         gi.runCycle();
     }
 
@@ -1260,7 +1247,7 @@ var startGame = benchmark.startGame = function(isBenchmark) {
     benchmark.game = gi;
 
     return gi;
-};
+}
 
 // user interaction with boards
 function assignCbsTo(gi) {
@@ -1628,12 +1615,12 @@ var view = {
 var cookie = new CookieStorage(view);
 cookie.load();
 
+
+var gi = startGame(makeOptions());
+
 // scrolling can be done only on full DOM therefore we do it
 // outside the startGame()
-var fitWindow = false
-  , gi = startGame();
-
-if (fitWindow) {
+if (view.ngFitVal) {
     getId("board").scrollIntoView();
 }
 
@@ -1758,9 +1745,9 @@ view.ngFilling.addEventListener("change", function() {
 
 view.ngStartInput.addEventListener("click", function() {
     gi.over();
-    startGame();
+    gi = startGame(makeOptions());
 
-    if (fitWindow) {
+    if (view.ngFitVal) {
         getId("board").scrollIntoView();
     }
 }, false);
