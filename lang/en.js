@@ -62,7 +62,7 @@ module.lang.en = {
   , pCanvasEngineTitle: "Quick, recommended"
   , pDOMEngineTitle: "Slow, not recommended"
   , pTip: "Click left mouse to make the cell live and click right to make it dead."
-        + "<p>Rules have format \"S/B\" where \"S\" stands for \"survival\" and \"B\" stands for \"birth\". Popular rules: 23/2nbsp;— classical game, 34/34, 23/36&nbsp;— HighLife."
+        + "<p>Rules have format \"S/B\" where \"S\" stands for \"survival\" and \"B\" stands for \"birth\". Popular rules: 23/2&nbsp;— classical game, 34/34, 23/36&nbsp;— HighLife."
   , pWhatsit: "The Game of Life is a cellular automaton, a zero-player game. The universe is a space divided into cells. Every generation is calculated out of the previous one by simple rules. More <a href=\"http://en.wikipedia.org/wiki/Conway%27s_Game_of_Life\" target=\"_blank\">on Wikipedia</a>."
 
   , rights: "<a href=\"LICENSE\">License information.</a>"
