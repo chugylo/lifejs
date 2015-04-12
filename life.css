@@ -12,7 +12,7 @@
   padding-left: 30px;
 }
 /* all sans font declarations here */
-input, select, option, #info-panel span, #lang li, #lang a {
+input, select, option, #info-panel span, .nav li, .nav a {
   font-family: "Dejavu Sans", Verdana, sans;
 }
 .red-text, .too-old, .bad-lang, noscript {
@@ -24,6 +24,12 @@ input, select, option, #info-panel span, #lang li, #lang a {
 .italic-text {
   font-style: italic;
 }
+code {
+  font-family: monospace;
+  border: 1px solid #aaaaaa;
+  background-color: #ffffff;
+  padding: 1px;
+}
 
   /* Headers */
 
@@ -31,6 +37,13 @@ h1 {
   font-size: 200%;
   text-align: center;
   padding: 20px;
+}
+h2 {
+  font-size: 150%;
+}
+h3 {
+  font-size: 135%;
+  margin-top: 5px;
 }
 h4 {
   font-size: 120%;
@@ -197,28 +210,49 @@ option {
   color: #333333;
 }
 
- /* Lang Panel */
+  /* Nav Panels */
 
-#lang {
-  list-style-type: none;
+.nav {
   position: absolute;
-  right: 45px;
   top: 21px;
+  list-style-type: none;
 }
-#lang li {
+.nav li {
   display: inline;
 }
-#lang li, #lang a {
+.nav li, .nav a {
   font-size: 120%;
   letter-spacing: 2px;
   padding: 20px 12px;
 }
-#lang a {
+.nav a {
   font-weight: lighter;
 }
-#lang a:hover {
+.nav a:hover {
   background-color: #aea;
 }
 #lang li:first-child {
   margin: -5px;
+}
+#lang {
+  right: 45px;
+}
+#nav {
+  left: 45px;
+}
+#nav a {
+  display: none;
+}
+
+  /* Help */
+
+#help-wrapper {
+  display: none;
+  padding: 30px;
+}
+#help-wrapper p {
+  padding: 2px;
+}
+#help-wrapper li {
+  list-style-position: inside;
 }

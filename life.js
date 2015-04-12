@@ -902,6 +902,16 @@ I18n.fillPage = function(_) {
 
     getId("lang-en").setAttribute("title", _.langEnTitle);
     getId("lang-uk").setAttribute("title", _.langUkTitle);
+
+    if (location.href.match(/#help$/i)) {  // URL with #help, switch to help page
+        qs("#game a").innerHTML = _.game;
+        qs("#game a").style.display = "inline";
+        qs("#help").innerHTML = _.help;
+    } else {
+        qs("#game").innerHTML = _.game;
+        qs("#help a").innerHTML = _.help;
+        qs("#help a").style.display = "inline";
+    }
 };
 
 
@@ -1612,6 +1622,67 @@ var view = {
 };
 
 
+function cycleRun() {
+    if (!view.cycleVal) {
+        view.cycleVal = true;
+        view.iStatus = true;
+        if (view.paSwitchVal) {
+            gi.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
+        }
+        gi.runCycle();
+    } else {
+        view.cycleVal = false;
+        view.iStatus = false;
+        gi.stopLoop();
+    }
+}
+
+function oneRun() {
+    if (view.cycleVal) {
+        view.cycleVal = false;
+        view.iStatus = false;
+        gi.stopLoop();
+    }
+    gi.runOne();
+}
+
+var isHelpPage = location.href.match(/#help$/i);
+function toggleHelp() {
+    if (isHelpPage) {
+        helpOff();
+    } else {
+        helpOn();
+    }
+    isHelpPage = !isHelpPage;
+}
+
+function helpOn() {
+    getId("game-wrapper").style.display = "none";
+    getId("help-wrapper").style.display = "block";
+    getId("game").innerHTML = '<a href="#game">'+_.game+'</a>';
+    qs("#game a").style.display = "inline";
+    qs("#game a").addEventListener("click", function() {
+        toggleHelp();
+    });
+    getId("help").innerHTML = _.help;
+}
+
+function helpOff() {
+    getId("game-wrapper").style.display = "block";
+    getId("help-wrapper").style.display = "none";
+    getId("game").innerHTML = _.game;
+    getId("help").innerHTML = '<a href="#help">'+_.help+'</a>';
+    qs("#help a").style.display = "inline";
+    qs("#help a").addEventListener("click", function() {
+        toggleHelp();
+    });
+}
+
+
+if (isHelpPage) {
+    helpOn();
+}
+
 var cookie = new CookieStorage(view);
 cookie.load();
 
@@ -1627,11 +1698,30 @@ if (view.ngFitVal) {
 view.iPeriod = gi.getPeriod();
 view.iBoardEngine = gi.getBoardEngine();
 
-document.body.addEventListener("keyup", function(ev) {
-    if (ev.keyCode == 27) {  // ESC
-        unFitWindow();
+document.body.addEventListener("keydown", function(ev) {
+    switch(ev.keyCode) {
+        case 27:  // ESC
+            unFitWindow();
+            break;
+        case 82:  // R
+            cycleRun();
+            break;
+        case 79:  // O
+            oneRun();
+            break;
+        case 80:  // P
+            toggleHelp();
+            break;
     }
 }, false);
+
+[ qs("#game a"), qs("#help a") ].forEach(function(el) {
+    if (el !== null) {
+        el.addEventListener("click", function() {
+            toggleHelp();
+        });
+    }
+});
 
 view.engineInputs.forEach(function(input) {
     input.addEventListener("change", function() {
@@ -1643,29 +1733,9 @@ view.engineInputs.forEach(function(input) {
     }, false);
 });
 
-view.cycleInput.addEventListener("click", function() {
-    if (!view.cycleVal) {
-        view.cycleVal = true;
-        view.iStatus = true;
-        if (view.paSwitchVal) {
-            gi.pauseAfter(getTargetGeneration(), view.paFromVal == "current");
-        }
-        gi.runCycle();
-    } else {
-        view.cycleVal = false;
-        view.iStatus = false;
-        gi.stopLoop();
-    }
-}, false);
+view.cycleInput.addEventListener("click", cycleRun, false);
 
-view.oneInput.addEventListener("click", function() {
-    if (view.cycleVal) {
-        view.cycleVal = false;
-        view.iStatus = false;
-        gi.stopLoop();
-    }
-    gi.runOne();
-});
+view.oneInput.addEventListener("click", oneRun);
 
 view.periodInput.addEventListener("change", function() {
     if (view.periodVal !== null) {

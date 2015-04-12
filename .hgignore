@@ -1,3 +1,6 @@
 test/qunit*
 node_modules
 
+syntax: regexp
+^lang/README.*html$
+

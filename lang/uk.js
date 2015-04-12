@@ -68,6 +68,9 @@ module.lang.uk = {
 
   , langEnTitle: "Англійська мова (English)"
   , langUkTitle: "Українська мова"
+
+  , game: "Гра"
+  , help: "Довідка"
 }
 
 return module;

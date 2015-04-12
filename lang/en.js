@@ -69,6 +69,9 @@ module.lang.en = {
 
   , langEnTitle: "English"
   , langUkTitle: "Ukrainian (Українська мова)"
+
+  , game: "Game"
+  , help: "Help"
 }
 
 return module;
