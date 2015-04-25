@@ -36,6 +36,10 @@ var getId = document.getElementById.bind(document)
   , qsa = document.querySelectorAll.bind(document)
   , el = document.createElement.bind(document);
 
+var capitalize = function(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
 // constants
 var GOLDEN_RATIO_INVERSED = 0.6180341996797237;
 
@@ -533,6 +537,14 @@ function GameInstance(view, args, isBenchmark) {
         board.redrawCellAsDead(pos);
     };
 
+    this.drawPen = function(type, x, y) {
+        board.drawPen(type, x, y);
+    };
+
+    this.cancelPen = function() {
+        board.cancelPen();
+    };
+
     this.over = function() {
         this.stopLoop(false);
         if (hasCanvas) {
@@ -582,6 +594,7 @@ function createLifeElem(tag, attrs, insertNow) {
 
 var BaseBoard = function() {
     this._init = function(sizeX, sizeY, cellSize) {
+        this.pen = getId("pen");
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.setCellSize(cellSize);
@@ -619,6 +632,30 @@ var BaseBoard = function() {
         this.cellSize = size;
         this.width = size.x * this.sizeX + this.sizeX + 1;
         this.height = size.y * this.sizeY + this.sizeY + 1;
+        this.pen.style.width = size.x + "px";
+        this.pen.style.height = size.y + "px";
+    };
+
+    this.drawPen = function(type, x, y) {
+        var boardStyle = getComputedStyle(getId("board"))
+          , colorMap = {
+                writer: "black"
+              , eraser: "white"
+              , inert: "gray"
+          };
+
+        this.pen.style.backgroundColor = colorMap[type];
+        this.pen.style.top = 1 + this.cellSize.y * y + y
+            + parseInt(boardStyle.getPropertyValue("padding-top"), 10)
+            + "px";
+        this.pen.style.left = 1 + this.cellSize.x * x + x
+            + parseInt(boardStyle.getPropertyValue("padding-left"), 10)
+            + "px";
+        this.pen.style.display = "block";
+    };
+
+    this.cancelPen = function() {
+        this.pen.style.display = "none";
     };
 };
 
@@ -930,6 +967,7 @@ var CookieStorage = function(view) {
           , "ngFilling"
           , "engine"
           , "ngRules"
+          , "pen"
         ]
       , loadMap = [
             function(v) {
@@ -970,6 +1008,7 @@ var CookieStorage = function(view) {
                 view.ngRulesStrVal = v;
                 view.iRules = v;
             }
+          , function() {}  // do nothing
         ];    
 
     // we look for backward compatibility
@@ -1689,6 +1728,162 @@ cookie.load();
 
 var gi = startGame(makeOptions());
 
+
+var pen = {
+    pens: [ "writer", "eraser", "inert" ]
+  , x: null
+  , y: null
+  , getCoords: function() {
+        var fromCookies = cookie.load("pen")
+          , parsed;
+
+        function parseCookieFormat(s) {
+            return {
+                x: parseInt(s.split("/")[0], 10)
+              , y: parseInt(s.split("/")[1], 10)
+            };
+        }
+
+        function processLimits(challenger) {
+            var boardSize = gi.getBoardSize();
+            if (   challenger === null
+                || challenger.x >= boardSize.x
+                || challenger.y >= boardSize.y) {
+                this.x = boardSize.x / 2;
+                this.y = boardSize.y / 2;
+                cookie.save("pen", this.x+"/"+this.y);
+                return { x: this.x, y: this.y };
+            }
+            return challenger;
+        }
+
+        if (fromCookies) {
+            parsed = parseCookieFormat(fromCookies);
+            this.x = parsed.x;
+            this.y = parsed.y;
+            return processLimits(parsed);
+        } else if (this.x !== null && this.y !== null) {
+            return processLimits({ x: this.x, y: this.y });
+        } else {
+            return processLimits(null);
+        }
+    }
+    // true means down, false means up
+  , writerState: false
+  , eraserState: false
+  , inertState: false
+  , draw: function(pen, coordsParam) {
+        var coords = coordsParam || this.getCoords();
+        gi.drawPen(pen, coords.x, coords.y);
+        switch (pen) {
+            case "writer":
+                gi.markCellLive(coords.x, coords.y);
+                break;
+            case "eraser":
+                gi.markCellDead(coords.x, coords.y);
+                break;
+        }
+        this[pen+"State"] = true;
+    }
+  , cancel: function(pen) {
+        gi.cancelPen();
+        this[pen+"State"] = false;
+    }
+  , rerun: function() {
+        var i, pen;
+        for (i in this.pens) {
+            pen = this.pens[i];
+            if (this[pen+"State"]) {
+                this.draw(pen);
+            }
+        }
+    }
+  , _mv: function(coordsFn) {
+        var coords, i, activePen;
+        if (this.writerState || this.eraserState || this.inertState) {
+            coords = this.getCoords();
+            coords = coordsFn(coords);
+            if (coords !== null) {
+                this.x = coords.x;
+                this.y = coords.y;
+                cookie.save("pen", coords.x+"/"+coords.y);
+                for (i in this.pens) {
+                    if (this[this.pens[i]+"State"]) {
+                        activePen = this.pens[i];
+                        break;
+                    }
+                }
+                this.draw(activePen, coords);
+                return true;
+            }
+        }
+        return false;
+    }
+  , mvLeft: function() {
+        return this._mv(function(coords) {
+            if (coords.x > 0) {
+                coords.x--;
+                return coords;
+            }
+            return null;
+        });
+    }
+  , mvRight: function() {
+        return this._mv(function(coords) {
+            if (coords.x < gi.getBoardSize().x - 1) {
+                coords.x++;
+                return coords;
+            }
+            return null;
+        });
+    }
+  , mvUp: function() {
+        return this._mv(function(coords) {
+            if (coords.y > 0) {
+                coords.y--;
+                return coords;
+            }
+            return null;
+        });
+    }
+  , mvDown: function() {
+        return this._mv(function(coords) {
+            if (coords.y < gi.getBoardSize().y - 1) {
+                coords.y++;
+                return coords;
+            }
+            return null;
+        });
+    }
+  , init: function() {
+        var i, self = this;
+        for (i in this.pens) {
+            (function() {
+                var currentPen = self.pens[i];
+                self["pull"+capitalize(currentPen)] = function() {
+                    var j, pen;
+                    if (self[currentPen+"State"]) {
+                        self.cancel(currentPen);  // up every pen
+                    } else {
+                        self.draw(currentPen);  // down current pen
+                        // only one pen is allowed
+                        for (j in self.pens) {
+                            pen = self.pens[j];
+                            if (pen !== currentPen) {
+                                if (self[pen+"State"]) {
+                                    self[pen+"State"] = false;
+                                }
+                            }
+                        }
+                    }
+                };
+            })();  // jshint ignore: line
+        }
+    }
+};
+pen.init();
+
+
 // scrolling can be done only on full DOM therefore we do it
 // outside the startGame()
 if (view.ngFitVal) {
@@ -1698,7 +1893,8 @@ if (view.ngFitVal) {
 view.iPeriod = gi.getPeriod();
 view.iBoardEngine = gi.getBoardEngine();
 
-document.body.addEventListener("keydown", function(ev) {
+document.body.addEventListener("keydown", function(ev) {  // jshint ignore: line
+    // console.log(ev.keyCode);
     switch(ev.keyCode) {
         case 27:  // ESC
             unFitWindow();
@@ -1708,6 +1904,43 @@ document.body.addEventListener("keydown", function(ev) {
             break;
         case 79:  // O
             oneRun();
+            break;
+        case 78:  // N
+            pen.pullWriter();
+            break;
+        case 77:  // M
+            pen.pullEraser();
+            break;
+        case 66:  // B
+            pen.pullInert();
+            break;
+        case 37:  // Left Arrow
+        case 65:  // A
+        case 72:  // H
+            if (pen.mvLeft()) {
+                ev.preventDefault();
+            }
+            break;
+        case 39:  // Right Arrow
+        case 68:  // D
+        case 76:  // L
+            if (pen.mvRight()) {
+                ev.preventDefault();
+            }
+            break;
+        case 38:  // Up Arrow
+        case 87:  // W
+        case 75:  // K
+            if (pen.mvUp()) {
+                ev.preventDefault();
+            }
+            break;
+        case 40:  // Down Arrow
+        case 83:  // S
+        case 74:  // J
+            if (pen.mvDown()) {
+                ev.preventDefault();
+            }
             break;
         case 80:  // P
             toggleHelp();
@@ -1771,6 +2004,7 @@ view.paFromInputs[1].addEventListener("change", function() {
 view.changeSizeInput.addEventListener("change", function() {
     cookie.save("cellSize", view.changeSizeVal);
     gi.changeCellSize(view.changeSizeVal);
+    pen.rerun();
     view.iCellSize = view.changeSizeVal;
 });
 
@@ -1816,6 +2050,8 @@ view.ngFilling.addEventListener("change", function() {
 view.ngStartInput.addEventListener("click", function() {
     gi.over();
     gi = startGame(makeOptions());
+
+    pen.rerun();
 
     if (view.ngFitVal) {
         getId("board").scrollIntoView();

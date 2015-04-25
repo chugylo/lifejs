@@ -51,6 +51,9 @@ h4 {
 
   /* Board */
 
+#board {
+  position: relative;  /* make #pen to be positionable relative to #board, not the whole page */
+}
 canvas {
   image-rendering: -moz-crisp-edges;
   image-rendering:   -o-crisp-edges;
@@ -79,6 +82,12 @@ canvas, #dom-board, .row {
 }
 .too-old, noscript {
   font-size: 140%;
+}
+#pen {
+  display: none;
+  z-index: 1;
+  position: absolute;
+  border: 1px solid red;
 }
 
   /* Panel */

@@ -25,7 +25,9 @@
 
   <div id="game-wrapper">
 
-    <div id="board"></div>
+    <div id="board">
+      <div id="pen"></div>
+    </div>
 
     <div id="panel">
       <div id="info-panel">
