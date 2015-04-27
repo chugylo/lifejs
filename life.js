@@ -1772,9 +1772,12 @@ var pen = {
   , writerState: false
   , eraserState: false
   , inertState: false
-  , draw: function(pen, coordsParam) {
+  , draw: function(pen, coordsParam, onlyMark) {
         var coords = coordsParam || this.getCoords();
-        gi.drawPen(pen, coords.x, coords.y);
+        // on several drawings at once in order to skip momental DOM work
+        if (!onlyMark) {
+            gi.drawPen(pen, coords.x, coords.y);
+        }
         switch (pen) {
             case "writer":
                 gi.markCellLive(coords.x, coords.y);
@@ -1799,60 +1802,71 @@ var pen = {
         }
     }
   , _mv: function(coordsFn) {
-        var coords, i, activePen;
+        var coords, i, j, activePen, lastCoords;
         if (this.writerState || this.eraserState || this.inertState) {
             coords = this.getCoords();
             coords = coordsFn(coords);
-            if (coords !== null) {
-                this.x = coords.x;
-                this.y = coords.y;
-                cookie.save("pen", coords.x+"/"+coords.y);
-                for (i in this.pens) {
-                    if (this[this.pens[i]+"State"]) {
-                        activePen = this.pens[i];
-                        break;
+            if (coords.length) {
+                for (i = 0; i < coords.length; i++) {
+                    for (j in this.pens) {
+                        if (this[this.pens[j]+"State"]) {
+                            activePen = this.pens[j];
+                            break;
+                        }
                     }
+                    this.draw(activePen, coords[i], i < coords.length - 1);
                 }
-                this.draw(activePen, coords);
+                lastCoords = coords.pop();
+                this.x = lastCoords.x;
+                this.y = lastCoords.y;
+                cookie.save("pen", lastCoords.x+"/"+lastCoords.y);
                 return true;
             }
         }
         return false;
     }
-  , mvLeft: function() {
-        return this._mv(function(coords) {
-            if (coords.x > 0) {
-                coords.x--;
-                return coords;
+  , getAffectedCoords: function(coords, key, increment, mul10, filterOutOfRange) {
+        var i, result = [];
+        for (i = 0; i < (mul10 ? 10 : 1); i++) {
+            if (filterOutOfRange(coords.x, coords.y)) {
+                coords[key] += increment ? 1 : -1;
+                result.push({ x: coords.x, y: coords.y });
+            } else {
+                break;
             }
-            return null;
+        }
+        return result;
+    }
+  , mvLeft: function(shiftPressed) {
+        var self = this;
+        return this._mv(function(coords) {
+            return self.getAffectedCoords(coords, "x", false, shiftPressed, function(x) {
+                return x > 0;
+            });
         });
     }
-  , mvRight: function() {
+  , mvRight: function(shiftPressed) {
+        var self = this;
         return this._mv(function(coords) {
-            if (coords.x < gi.getBoardSize().x - 1) {
-                coords.x++;
-                return coords;
-            }
-            return null;
+            return self.getAffectedCoords(coords, "x", true, shiftPressed, function(x) {
+                return x < gi.getBoardSize().x - 1;
+            });
         });
     }
-  , mvUp: function() {
+  , mvUp: function(shiftPressed) {
+        var self = this;
         return this._mv(function(coords) {
-            if (coords.y > 0) {
-                coords.y--;
-                return coords;
-            }
-            return null;
+            return self.getAffectedCoords(coords, "y", false, shiftPressed, function(_, y) {
+                return y > 0;
+            });
         });
     }
-  , mvDown: function() {
+  , mvDown: function(shiftPressed) {
+        var self = this;
         return this._mv(function(coords) {
-            if (coords.y < gi.getBoardSize().y - 1) {
-                coords.y++;
-                return coords;
-            }
-            return null;
+            return self.getAffectedCoords(coords, "y", true, shiftPressed, function(_, y) {
+                return y < gi.getBoardSize().y - 1;
+            });
         });
     }
   , init: function() {
@@ -1894,7 +1908,7 @@ view.iPeriod = gi.getPeriod();
 view.iBoardEngine = gi.getBoardEngine();
 
 document.body.addEventListener("keydown", function(ev) {  // jshint ignore: line
-    // console.log(ev.keyCode);
+    // console.log(ev);
     switch(ev.keyCode) {
         case 27:  // ESC
             unFitWindow();
@@ -1917,28 +1931,28 @@ document.body.addEventListener("keydown", function(ev) {  // jshint ignore: line
         case 37:  // Left Arrow
         case 65:  // A
         case 72:  // H
-            if (pen.mvLeft()) {
+            if (pen.mvLeft(ev.shiftKey)) {
                 ev.preventDefault();
             }
             break;
         case 39:  // Right Arrow
         case 68:  // D
         case 76:  // L
-            if (pen.mvRight()) {
+            if (pen.mvRight(ev.shiftKey)) {
                 ev.preventDefault();
             }
             break;
         case 38:  // Up Arrow
         case 87:  // W
         case 75:  // K
-            if (pen.mvUp()) {
+            if (pen.mvUp(ev.shiftKey)) {
                 ev.preventDefault();
             }
             break;
         case 40:  // Down Arrow
         case 83:  // S
         case 74:  // J
-            if (pen.mvDown()) {
+            if (pen.mvDown(ev.shiftKey)) {
                 ev.preventDefault();
             }
             break;
