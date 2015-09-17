@@ -22,6 +22,7 @@ window.onload = function(ev) {
         || typeof Document.prototype.querySelectorAll != "function"
         || typeof Function.prototype.bind != "function"
         || typeof getComputedStyle != "function"
+        || ev.target === undefined
         || !ev
         // check getters
         || (function() {

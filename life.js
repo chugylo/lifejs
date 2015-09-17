@@ -486,6 +486,10 @@ function GameInstance(view, args, isBenchmark) {
         }
     };
 
+    this.isRunning = function() {
+        return runs;
+    };
+
     this.getCellSize = function() {
         return cellSize;
     };
@@ -528,11 +532,19 @@ function GameInstance(view, args, isBenchmark) {
     };
 
     this.markCellLive = function(x, y) {
+        // prevent wrong neighbor counting
+        if (this.getStateForCell(x, y)) {
+            return;
+        }
         var pos = game.setLive(x, y);
         board.redrawCellAsLive(pos);
     };
 
     this.markCellDead = function(x, y) {
+        // prevent wrong neighbor counting
+        if (!this.getStateForCell(x, y)) {
+            return;
+        }
         var pos = game.setDead(x, y);
         board.redrawCellAsDead(pos);
     };
@@ -900,6 +912,7 @@ I18n.fillPage = function(_) {
     prependId("info-board-size", _.piBoardSize);
     prependId("info-cell-size", _.piCellSize);
     prependId("info-rules", _.piRules);
+    prependId("info-mouse-stroke", _.piMouseStroke);
     prependId("info-board-type", _.piBoardEngine);
     getId("cycle").value = _.pCycle;
     getId("one").value = _.pOne;
@@ -968,6 +981,7 @@ var CookieStorage = function(view) {
           , "engine"
           , "ngRules"
           , "pen"
+          , "mouseStroke"
         ]
       , loadMap = [
             function(v) {
@@ -1009,6 +1023,9 @@ var CookieStorage = function(view) {
                 view.iRules = v;
             }
           , function() {}  // do nothing
+          , function(v) {
+                view.iMouseStroke = parseInt(v, 10);
+            }
         ];    
 
     // we look for backward compatibility
@@ -1130,6 +1147,7 @@ var CookieStorage = function(view) {
 if (!getId("board") || !getId("panel")) {
     return {
         game: game
+      , bresenham: bresenham
     };
 }
 
@@ -1298,56 +1316,219 @@ function startGame(options, asBenchmark) {
     return gi;
 }
 
-// user interaction with boards
-function assignCbsTo(gi) {
-    function onmouse(elem, ev, cb, cbBorder, preventDefault) {
-        var cellSize = gi.getCellSize()
-          , boardSize = gi.getBoardSize()
-          , rect = elem.getBoundingClientRect()
-          , clickX = ev.clientX - rect.left - 1
-          , clickY = ev.clientY - rect.top - 1
-          , cellWithBorderX = cellSize.x + 1
-          , cellWithBorderY = cellSize.y + 1;
+// Bresenham's line algorithm
+function bresenham(x0, y0, x1, y1) {
+    var dx
+      , ix
+      , dy
+      , iy
+      , err
+      , e2
+      , list = [];
 
-        if (clickX % cellWithBorderX && clickY % cellWithBorderY) {
-            var x = parseInt(clickX / cellWithBorderX)
-              , y = parseInt(clickY / cellWithBorderY);
-
-            if (x < boardSize.x && y < boardSize.y) {
-                cb(x, y);
-            }
-        } else if (typeof cbBorder == "function") {
-            cbBorder();
+    dx = Math.abs(x1 - x0);
+    ix = x0 < x1 ? 1 : -1;
+    dy = Math.abs(y1 - y0);
+    iy = y0 < y1 ? 1 : -1;
+    err = (dx > dy ? dx : -dy) / 2;
+ 
+    for (;;) {
+        list.push({ x: x0, y: y0 });
+        if (x0 === x1 && y0 === y1) {
+            break;
         }
-
-        if (preventDefault === true) {
-            ev.preventDefault();
+        e2 = err;
+        if (e2 > -dx) {
+            err -= dy;
+            x0 += ix;
+        }
+        if (e2 < dy) {
+            err += dx;
+            y0 += iy;
         }
     }
 
+    return list;
+}
+
+// user interaction with boards
+function assignCbsTo(gi) {
+    var firstPoint = null
+      , backupPoints = []
+      // cache board coordinates and try not to waste cpu if `mousemove` event
+      // happen on the same cell
+      , cachedCoords = {}
+      , infoCachedCoords = {}
+      , actualMouseStrokeType
+      , freeStrokeD, straightStrokeD;
+
+    // get mouse event and return game instance's coords
+    // or null on borders
+    function evToCoords(ev) {
+        var cellSize = gi.getCellSize()
+          , boardSize = gi.getBoardSize()
+          , rect = ev.target.getBoundingClientRect()
+          , clickX = ev.clientX - rect.left - 1
+          , clickY = ev.clientY - rect.top - 1
+          , cellWithBorderX = cellSize.x + 1
+          , cellWithBorderY = cellSize.y + 1
+          , x, y;
+
+        if (clickX % cellWithBorderX && clickY % cellWithBorderY) {
+            x = Math.floor(clickX / cellWithBorderX);
+            y = Math.floor(clickY / cellWithBorderY);
+
+            if (x < boardSize.x && y < boardSize.y) {
+                return { x: x, y: y };
+            }
+        }
+
+        return null;
+    }
+
+    function updateInfo(ev, coordsParam) {
+        var coords = coordsParam !== undefined ? coordsParam : evToCoords(ev);
+
+        if (coords !== null) {
+            if (coords.x === infoCachedCoords.x && coords.y === infoCachedCoords.y) {
+                return;
+            }
+            var state = gi.getStateForCell(coords.x, coords.y);
+            view.iCellInfo = { state: "in", x: coords.x, y: coords.y, cellState: state };
+            view.mouseAboveState = { isActive: true, x: coords.x, y: coords.y };
+            infoCachedCoords = coords;
+        } else {
+            view.iCellInfo = { state: "border" };
+            view.mouseAboveState = { isActive: false };
+        }
+    }
+
+    function strokeDecor(fn) {
+        var coords;
+
+        function wrapper(ev) {
+            infoCachedCoords = {};
+
+            if (!gi.isRunning()) {
+                coords = evToCoords(ev);
+                // is not on a border and is not cached
+                if (coords && !(coords.x === cachedCoords.x && coords.y === cachedCoords.y)) {
+                    fn(coords, cachedCoords, ev.buttons || ev.button);
+                    cachedCoords = coords;
+                }
+
+                updateInfo(ev, coords);
+            } else {
+                updateInfo(ev);
+            }
+        }
+
+        return wrapper;
+    }
+
+    function changeCell(x, y, buttons) {
+        // left click
+        if (buttons & 1) {
+            gi.markCellLive(x, y);
+        // right click
+        // we use else-if, right click will be ignored if pressed both buttons
+        } else if (buttons & 2) {
+            gi.markCellDead(x, y);
+        }
+    }
+
+    function freeStroke(coords, cachedCoords, buttons) {
+        var x = coords.x, y = coords.y;
+
+        // delegate forward
+        if (   cachedCoords.x !== undefined
+            && cachedCoords.y !== undefined
+            && (   Math.abs(cachedCoords.x - x) > 1
+                || Math.abs(cachedCoords.y - y) > 1
+                )
+            ) {
+            firstPoint = cachedCoords;
+            straightStroke(coords, null, buttons, true);
+            firstPoint = null;
+        }
+
+        changeCell(x, y, buttons);
+    }
+    freeStrokeD = strokeDecor(freeStroke);
+
+    function getBackChanged() {
+        var i = 0;
+        for (; i < backupPoints.length; i++) {
+            if (backupPoints[i].state) {
+                gi.markCellLive(backupPoints[i].x, backupPoints[i].y);
+            } else {
+                gi.markCellDead(backupPoints[i].x, backupPoints[i].y);
+            }
+        }
+    }
+
+    function makeBackup(list, buttons) {
+        var i = 0
+          , state;
+
+        backupPoints = [];
+
+        for (; i < list.length; i++) {
+            state = gi.getStateForCell(list[i].x, list[i].y);
+            if (buttons & 1 && !state || buttons & 2 && state) {
+                list[i].state = state;
+                backupPoints.push(list[i]);
+            }
+        }
+    }
+
+    function straightStroke(coords, cachedCoords, buttons, woBackup) {
+        var i = 0
+          , list;
+
+        if (firstPoint === null) {
+            firstPoint = coords;
+        }
+
+        list = bresenham(firstPoint.x, firstPoint.y, coords.x, coords.y);
+
+        if (!woBackup) {
+            getBackChanged();
+            makeBackup(list, buttons);
+        }
+
+        for (; i < list.length; i++) {
+            changeCell(list[i].x, list[i].y, buttons);
+        }
+    }
+    straightStrokeD = strokeDecor(straightStroke);
+
     gi.getBoardElems().forEach(function(elem) {
-        elem.onclick = function(ev) {
-            onmouse(elem, ev, function(x, y) {
-                gi.markCellLive(x, y);
-                view.iCellInfo = { state: "in", x: x, y: y, cellState: true };
-            });
-        };
         elem.oncontextmenu = function(ev) {
-            onmouse(elem, ev, function(x, y) {
-                gi.markCellDead(x, y);
-                view.iCellInfo = { state: "in", x: x, y: y, cellState: false };
-            }, null, true);
+            ev.preventDefault();
         };
         elem.onmouseenter = function() {
-            elem.onmousemove = function(ev) {
-                onmouse(elem, ev, function(x, y) {
-                    var state = gi.getStateForCell(x, y);
-                    view.iCellInfo = { state: "in", x: x, y: y, cellState: state };
-                    view.mouseAboveState = { isActive: true, x: x, y: y };
-                }, function() {
-                    view.iCellInfo = { state: "border" };
-                    view.mouseAboveState = { isActive: false };
-                });
+            elem.onmousemove = updateInfo;
+            elem.onmousedown = function(ev) {
+                // Cache the value of `mouseStrokeType`.
+                // Change of type should only happen on completed plotting
+                // process (unpressed mouse button).
+                actualMouseStrokeType = mouseStrokeType;
+                if (actualMouseStrokeType) {
+                    straightStrokeD(ev);
+                    elem.onmousemove = straightStrokeD;
+                } else {
+                    freeStrokeD(ev);
+                    elem.onmousemove = freeStrokeD;
+                }
+            };
+            elem.onmouseup = function() {
+                elem.onmousemove = updateInfo;
+                cachedCoords = {};
+                if (actualMouseStrokeType) {
+                    firstPoint = null;
+                    backupPoints = [];
+                }
             };
         };
         elem.onmouseleave = function() {
@@ -1391,6 +1572,7 @@ var view = {
   , iCellSizeSpan:      qs("#info-cell-size span")
   , iPeriodSpan:        qs("#info-period span")
   , iRulesSpan:         qs("#info-rules span")
+  , iMouseStrokeSpan:   qs("#info-mouse-stroke span")
   , iBoardEngineSpan:   qs("#info-board-type span")
 
     // cached position of the mouse for renew Cell Info at every board redraw
@@ -1655,6 +1837,10 @@ var view = {
         this.iRulesSpan.innerHTML = rules;
     }
 
+  , set iMouseStroke(type) {
+        this.iMouseStrokeSpan.innerHTML = type ? _.piStraight : _.piFree;
+    }
+
   , set iBoardEngine(engineName) {
         this.iBoardEngineSpan.innerHTML = engineName;
     }
@@ -1907,6 +2093,11 @@ if (view.ngFitVal) {
 view.iPeriod = gi.getPeriod();
 view.iBoardEngine = gi.getBoardEngine();
 
+// 0 - free type
+// 1 - straight type
+var mouseStrokeType = cookie.load("mouseStroke") || 0;
+view.iMouseStroke = mouseStrokeType;
+
 document.body.addEventListener("keydown", function(ev) {  // jshint ignore: line
     // console.log(ev);
     switch(ev.keyCode) {
@@ -1918,6 +2109,14 @@ document.body.addEventListener("keydown", function(ev) {  // jshint ignore: line
             break;
         case 79:  // O
             oneRun();
+            break;
+        case 67:  // C
+            view.iMouseStroke = mouseStrokeType = 0;
+            cookie.save("mouseStroke", 0);
+            break;
+        case 86:  // V
+            view.iMouseStroke = mouseStrokeType = 1;
+            cookie.save("mouseStroke", 1);
             break;
         case 78:  // N
             pen.pullWriter();

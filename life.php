@@ -39,6 +39,7 @@
         <div id="info-board-size"><span></span></div>
         <div id="info-cell-size"><span></span></div>
         <div id="info-rules"><span></span></div>
+        <div id="info-mouse-stroke"><span></span></div>
         <div id="info-board-type"><span></span></div>
       </div>
 
