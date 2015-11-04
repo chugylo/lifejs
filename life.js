@@ -928,6 +928,10 @@ I18n.fillPage = function(_) {
     prepend(qs("#change-size-panel label"), _.pCellSize);
     append(qs("#change-size-panel label"), _.pPx);
 
+    prepend(qs("#mouse-stroke label"), _.pMouseStroke);
+    append(qsAll('mouse-stroke label')[0], _.pFree);
+    append(qsAll('mouse-stroke label')[1], _.pStraight);
+
     qs("#new-game-panel h4").innerHTML = _.pNewGame;
     newGameLabels = qsAll("new-game-panel label");
     prepend(newGameLabels[0], _.pBoardSize);
@@ -1024,7 +1028,7 @@ var CookieStorage = function(view) {
             }
           , function() {}  // do nothing
           , function(v) {
-                view.iMouseStroke = parseInt(v, 10);
+                view.mouseStrokeVal = view.iMouseStroke = parseInt(v, 10);
             }
         ];    
 
@@ -1559,6 +1563,7 @@ var view = {
   , paGenerationsInput: getId("pa-generations")
   , paFromInputs:       qsa('input[name="pause-after"]')
   , changeSizeInput:    getId("change-size")
+  , mouseStrokeInputs:  qsa('input[name="mouse-stroke"')
   , ngXInput:           getId("new-game-x")
   , ngYInput:           getId("new-game-y")
   , ngFitInput:         getId("new-game-fit")
@@ -1577,6 +1582,17 @@ var view = {
 
     // cached position of the mouse for renew Cell Info at every board redraw
   , mouseAboveState: { isActive: false }
+
+  , getRadioVal: function(inputs) {
+        var i = 0;
+
+        while (inputs[i]) {
+            if (inputs[i].checked) {
+                return inputs[i].value;
+            }
+            i++;
+        }
+    }
 
   , get engineInputs() {
         // converts into the real array
@@ -1645,15 +1661,7 @@ var view = {
     }
 
   , get paFromVal() {
-        var inputs = qsa('input[name="pause-after"]')
-          , i = 0;
-
-        while (inputs[i]) {
-            if (inputs[i].checked) {
-                return inputs[i].value;
-            }
-            i++;
-        }
+        return this.getRadioVal(this.paFromInputs);
     }
 
   , set paFromVal(value) {
@@ -1666,6 +1674,15 @@ var view = {
 
   , set changeSizeVal(value) {
         this.changeSizeInput.value = value;
+    }
+
+  , get mouseStrokeVal() {
+        return this.getRadioVal(this.mouseStrokeInputs) == "free" ? 0 : 1;
+    }
+
+  , set mouseStrokeVal(value) {
+        value = value ? "straight" : "free";
+        qs('[name="mouse-stroke"][value="'+value+'"]').checked = true;
     }
 
   , _ngSizeVal: function(input) {
@@ -2096,7 +2113,6 @@ view.iBoardEngine = gi.getBoardEngine();
 // 0 - free type
 // 1 - straight type
 var mouseStrokeType = cookie.load("mouseStroke") || 0;
-view.iMouseStroke = mouseStrokeType;
 
 document.body.addEventListener("keydown", function(ev) {  // jshint ignore: line
     // console.log(ev);
@@ -2111,11 +2127,11 @@ document.body.addEventListener("keydown", function(ev) {  // jshint ignore: line
             oneRun();
             break;
         case 67:  // C
-            view.iMouseStroke = mouseStrokeType = 0;
+            view.mouseStrokeVal = view.iMouseStroke = mouseStrokeType = 0;
             cookie.save("mouseStroke", 0);
             break;
         case 86:  // V
-            view.iMouseStroke = mouseStrokeType = 1;
+            view.mouseStrokeVal = view.iMouseStroke = mouseStrokeType = 1;
             cookie.save("mouseStroke", 1);
             break;
         case 78:  // N
@@ -2220,6 +2236,14 @@ view.changeSizeInput.addEventListener("change", function() {
     pen.rerun();
     view.iCellSize = view.changeSizeVal;
 });
+
+function onMouseStrokeChanged() {
+    view.iMouseStroke = mouseStrokeType = view.mouseStrokeVal;
+    cookie.save("mouseStroke", mouseStrokeType);
+}
+for (var i = 0; i < view.mouseStrokeInputs.length; i++) {
+    view.mouseStrokeInputs[i].addEventListener("change", onMouseStrokeChanged);
+}
 
 view.ngXInput.addEventListener("change", function() {
     cookie.save("ngX", view.ngXVal);

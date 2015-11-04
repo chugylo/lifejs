@@ -62,6 +62,11 @@
         <div id="change-size-panel" class="panel-line">
           <label><input type="number" id="change-size" min="1" max="99" value="7" maxlength="2"></label>
         </div>
+
+        <div id="mouse-stroke" class="panel-line">
+          <label><input type="radio" name="mouse-stroke" value="free" checked></label>
+          <label><input type="radio" name="mouse-stroke" value="straight"></label>
+        </div>
       </div>
 
       <div id="new-game-panel" class="panel-group">

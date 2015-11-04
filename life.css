@@ -161,7 +161,7 @@ option {
 #period {
   width: 80px;
 }
-#pause-after-panel, #change-size-panel {
+#pause-after-panel, #change-size-panel, #mouse-stroke {
   margin-left: 15px;
 }
 #pause-after-panel > label {
@@ -175,6 +175,9 @@ option {
 }
 #change-size {
   width: 35px;
+}
+#mouse-stroke {
+  margin-top: 12px;
 }
 #new-game-x, #new-game-y, #pa-generations {
   width: 55px;

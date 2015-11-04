@@ -49,6 +49,10 @@ module.lang.uk = {
   , pCellSize: "Розмір клітини: "
   , pPx: "&#8201;пкс"
 
+  , pMouseStroke: "Рисування мишею: "
+  , pFree: "вільне"
+  , pStraight: "пряме"
+
   , pNewGame: "Нова гра"
   , pBoardSize: "Розмір дошки: "
   , pFit: " Підлаштувати під розмір вікна"

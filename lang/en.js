@@ -50,6 +50,10 @@ module.lang.en = {
   , pCellSize: "Cell Size: "
   , pPx: "&#8201;px"
 
+  , pMouseStroke: "Mouse stroke: "
+  , pFree: "free"
+  , pStraight: "straight"
+
   , pNewGame: "New Game"
   , pBoardSize: "Board Size: "
   , pFit: " Fit to window size"
