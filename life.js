@@ -1563,7 +1563,7 @@ var view = {
   , paGenerationsInput: getId("pa-generations")
   , paFromInputs:       qsa('input[name="pause-after"]')
   , changeSizeInput:    getId("change-size")
-  , mouseStrokeInputs:  qsa('input[name="mouse-stroke"')
+  , mouseStrokeInputs:  qsa('input[name="mouse-stroke"]')
   , ngXInput:           getId("new-game-x")
   , ngYInput:           getId("new-game-y")
   , ngFitInput:         getId("new-game-fit")
