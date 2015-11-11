@@ -85,6 +85,7 @@
       <div id="board-engine-panel" class="panel-group">
         <h4></h4>
         <div class="panel-line"><label><input type="radio" name="engine" value="Canvas" id="engine-canvas" checked></label><label><input type="radio" name="engine" value="DOM" id="engine-dom"></label></div>
+        <div class="panel-line"><a id="save" download="" target="_blank" href="#"></a></div>
       </div>
 
       <div id="tip-panel" class="panel-group"></div>

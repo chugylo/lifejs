@@ -949,6 +949,7 @@ I18n.fillPage = function(_) {
     append(engineLabels[1], _.pDOMEngine);
     engineLabels[0].setAttribute("title", _.pCanvasEngineTitle);
     engineLabels[1].setAttribute("title", _.pDOMEngineTitle);
+    getId("save").innerHTML = _.pSave;
     getId("tip-panel").innerHTML = _.pTip;
     getId("whatsit-panel").innerHTML = _.pWhatsit;
 
@@ -2294,6 +2295,45 @@ view.ngStartInput.addEventListener("click", function() {
         getId("board").scrollIntoView();
     }
 }, false);
+
+function makeSaveFname() {
+    var now = new Date;
+    return "lifegame-"
+         + now.getFullYear()
+         + "-"
+         + ("0" + (now.getMonth() + 1)).slice(-2)
+         + "-"
+         + ("0" + now.getDate()).slice(-2)
+         + "-"
+         + ("0" + now.getHours()).slice(-2)
+         + "-"
+         + ("0" + now.getMinutes()).slice(-2)
+         + "-"
+         + ("0" + now.getSeconds()).slice(-2)
+         + ".png";
+}
+if (   hasCanvas
+    && window.HTMLCanvasElement !== undefined
+    && typeof HTMLCanvasElement.prototype.toDataURL == "function"
+    ) {
+    getId("save").onmousedown = function(ev) {
+        var canvas = document.getElementsByTagName("canvas")[0]
+          , ref;
+
+        if (gi.getBoardEngine() == "DOM") {
+            gi.setBoard("Canvas");
+            ref = canvas.toDataURL("image/png");
+            gi.setBoard("DOM");
+        } else {
+            ref = canvas.toDataURL("image/png");
+        }
+
+        this.setAttribute("href", ref);
+        this.setAttribute("download", makeSaveFname());
+    };
+} else {
+    getId("save").style.display = "none";
+}
 
 
 module.benchmark = benchmark;
