@@ -2316,7 +2316,7 @@ if (   hasCanvas
     && window.HTMLCanvasElement !== undefined
     && typeof HTMLCanvasElement.prototype.toDataURL == "function"
     ) {
-    getId("save").onmousedown = function(ev) {
+    getId("save").onmousedown = function() {
         var canvas = document.getElementsByTagName("canvas")[0]
           , ref;
 
