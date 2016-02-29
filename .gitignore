@@ -1,0 +1,3 @@
+test/qunit*
+node_modules
+lang/README.*html
