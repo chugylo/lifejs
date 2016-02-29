@@ -2,7 +2,7 @@
 
 The clone of Conway's Game of Life that runs in the browser.
 
-Version: 1.0, released 15 Aug 2014.
+Version: 1.1, released 29 Feb 2016.
 
 License: MIT.
 See LICENSE file for more information.

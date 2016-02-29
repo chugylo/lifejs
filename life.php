@@ -99,7 +99,7 @@
     <?php echo file_get_contents('lang/README.'.$lang.'.html'); ?>
   </div>
 
-  <div id="footer">&copy; 2014&ndash;2015, chugylo <br></div>
+  <div id="footer">&copy; 2014&ndash;2016, chugylo <br></div>
 
   <ul id="nav" class="nav">
     <li id="game"><a href="#game"></a></li>
